@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOVA — Login</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+:root{
+  --bg:#080b10;--surface:#0d1117;--surface2:#161b22;--border:#21262d;
+  --accent:#7c3aed;--accent2:#a855f7;--accent-glow:rgba(124,58,237,0.3);
+  --text:#e6edf3;--text-muted:#7d8590;--text-dim:#484f58;--danger:#f85149;
+  --mono:'Share Tech Mono',monospace;--ui:'Rajdhani',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:var(--ui);min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(124,58,237,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(124,58,237,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;}
+.glow-orb{position:fixed;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(124,58,237,0.08) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;}
+.login-wrap{position:relative;z-index:10;width:400px;animation:fadeUp 0.6s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
+.logo-area{text-align:center;margin-bottom:36px;}
+.logo-name{font-family:var(--mono);font-size:42px;letter-spacing:12px;color:var(--text);text-shadow:0 0 30px var(--accent-glow);}
+.logo-sub{font-family:var(--mono);font-size:11px;letter-spacing:4px;color:var(--text-dim);margin-top:6px;text-transform:uppercase;}
+.logo-line{width:60px;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);margin:16px auto 0;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:32px;box-shadow:0 0 60px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.04);}
+.field-group{margin-bottom:20px;}
+label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;}
+input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:14px;padding:12px 14px;outline:none;transition:border-color 0.2s,box-shadow 0.2s;}
+input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
+.btn-login{width:100%;background:var(--accent);border:none;border-radius:4px;color:#fff;font-family:var(--ui);font-size:15px;font-weight:600;letter-spacing:3px;padding:13px;cursor:pointer;text-transform:uppercase;transition:background 0.2s,box-shadow 0.2s,transform 0.1s;margin-top:8px;}
+.btn-login:hover{background:var(--accent2);box-shadow:0 0 20px var(--accent-glow);}
+.btn-login:active{transform:scale(0.98);}
+.btn-login:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+.error-msg{background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);border-radius:4px;color:var(--danger);font-family:var(--mono);font-size:12px;padding:10px 14px;margin-top:16px;display:none;}
+.status-bar{margin-top:20px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--text-dim);letter-spacing:1px;min-height:18px;}
+.spinner{display:inline-block;width:10px;height:10px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.6s linear infinite;margin-right:8px;vertical-align:middle;}
+@keyframes spin{to{transform:rotate(360deg);}}
+/* Lockout overlay */
+.lockout{position:fixed;inset:0;background:rgba(8,11,16,0.97);display:none;align-items:center;justify-content:center;z-index:1000;}
+.lockout-card{text-align:center;max-width:480px;padding:48px;border:1px solid var(--border);border-radius:8px;background:var(--surface);}
+.lockout-icon{font-size:40px;margin-bottom:20px;}
+.lockout-title{font-family:var(--mono);font-size:18px;letter-spacing:4px;color:var(--danger);margin-bottom:12px;}
+.lockout-msg{color:var(--text-muted);font-size:15px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="glow-orb"></div>
+
+<div class="lockout" id="lockoutOverlay">
+  <div class="lockout-card">
+    <div class="lockout-icon" id="lockoutIcon">🔒</div>
+    <div class="lockout-title" id="lockoutTitle">SYSTEM LOCKED</div>
+    <div class="lockout-msg" id="lockoutMsg">Access restricted.</div>
+  </div>
+</div>
+
+<div class="login-wrap">
+  <div class="logo-area">
+    <div class="logo-name">NOVA</div>
+    <div class="logo-sub">Chatting Platform</div>
+    <div class="logo-line"></div>
+  </div>
+  <div class="card">
+    <div class="field-group">
+      <label>Email Address</label>
+      <input type="email" id="emailInput" placeholder="user@domain.com" autocomplete="email">
+    </div>
+    <div class="field-group">
+      <label>Password</label>
+      <input type="password" id="passInput" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">Login</button>
+    <div class="error-msg" id="errorMsg"></div>
+    <div style="text-align:center;margin-top:16px">
+      <button onclick="openRegister()" style="background:none;border:none;color:var(--text-dim);font-family:var(--mono);font-size:11px;letter-spacing:1px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;transition:color 0.15s">Create an account</button>
+    </div>
+  </div>
+  <div class="status-bar" id="statusBar"></div>
+
+<!-- REGISTER MODAL -->
+<div id="registerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(3px)">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:32px;width:400px;box-shadow:0 0 60px rgba(0,0,0,0.5);animation:fadeUp 0.3s ease">
+    <div style="font-family:var(--mono);font-size:12px;letter-spacing:4px;color:var(--text-muted);text-transform:uppercase;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--border)">Create Account</div>
+    <div class="field-group"><label>Username</label><input type="text" id="regUsername" placeholder="Your display name"></div>
+    <div class="field-group"><label>Email Address</label><input type="email" id="regEmail" placeholder="user@domain.com"></div>
+    <div class="field-group"><label>Password</label><input type="password" id="regPass" placeholder="Min 6 characters"></div>
+    <div class="field-group"><label>Confirm Password</label><input type="password" id="regPass2" placeholder="Repeat password"></div>
+    <div class="error-msg" id="regError"></div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button onclick="closeRegister()" style="flex:1;background:none;border:1px solid var(--border);color:var(--text-muted);font-family:var(--ui);font-size:14px;font-weight:500;letter-spacing:2px;padding:11px;border-radius:4px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">Cancel</button>
+      <button onclick="doRegister()" id="regBtn" style="flex:2;background:var(--accent);border:none;border-radius:4px;color:#fff;font-family:var(--ui);font-size:15px;font-weight:600;letter-spacing:2px;padding:11px;cursor:pointer;text-transform:uppercase;transition:background 0.2s" onmouseover="this.style.background='var(--accent2)'" onmouseout="this.style.background='var(--accent)'">Register</button>
+    </div>
+    <div style="text-align:center;margin-top:14px;font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:1px">Accounts start as User role</div>
+  </div>
+</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyClEfbrTpSwVPpThWZJukobJN9tCKMXTx4",
+  authDomain: "nova-7a26f.firebaseapp.com",
+  projectId: "nova-7a26f",
+  storageBucket: "nova-7a26f.firebasestorage.app",
+  messagingSenderId: "98300801242",
+  appId: "1:98300801242:web:77c16453b6dac8fed3b5e3",
+  measurementId: "G-67N1G1RFMS"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+// ── BOOTSTRAP OWNER ───────────────────────────────────────
+async function bootstrapOwner() {
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, 'owner@nova.com', 'Alby1000');
+    await setDoc(doc(db,'users',cred.user.uid), {
+      email:'owner@nova.com', role:'Owner', username:'Owner',
+      warningsCount:0, banned:false, tempBannedUntil:null,
+      mutedUntil:null, pfp:'', pingCount:0, punishmentHistory:[]
+    });
+    // Seed global settings
+    await setDoc(doc(db,'settings','global'), {
+      maintenance:false, maintenanceMessage:'System under maintenance.',
+      emergency:false,   emergencyMessage:'Emergency shutdown active.',
+      debug:false,       voiceMode:'agora'
+    });
+    // Seed default channels
+    for (const ch of [
+      {id:'general', name:'general', desc:'General discussion',              restricted:false, readonly:false},
+      {id:'updates', name:'updates', desc:'System updates & announcements',  restricted:false, readonly:true},
+      {id:'staff',   name:'staff',   desc:'Staff and above only',            restricted:true,  readonly:false},
+    ]) await setDoc(doc(db,'channels',ch.id), {...ch, createdAt:Date.now()});
+    await setDoc(doc(db,'channels','devalerts'), {name:'devalerts', private:true, createdAt:Date.now()});
+    await auth.signOut();
+    console.log('[NOVA] Bootstrap complete.');
+  } catch(e) {
+    if (e.code === 'auth/email-already-in-use') {
+      try {
+        const c = await signInWithEmailAndPassword(auth, 'owner@nova.com', 'Alby1000');
+        const s = await getDoc(doc(db,'users',c.user.uid));
+        if (!s.exists()) {
+          await setDoc(doc(db,'users',c.user.uid), {
+            email:'owner@nova.com', role:'Owner', username:'Owner',
+            warningsCount:0, banned:false, tempBannedUntil:null,
+            mutedUntil:null, pfp:'', pingCount:0, punishmentHistory:[]
+          });
+        }
+        await auth.signOut();
+      } catch(_) {}
+    }
+  }
+}
+bootstrapOwner();
+
+// ── HELPERS ───────────────────────────────────────────────
+function setStatus(msg) {
+  document.getElementById('statusBar').innerHTML = msg
+    ? `<span class="spinner"></span>${msg}` : '';
+}
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg; el.style.display = 'block';
+}
+function hideError() { document.getElementById('errorMsg').style.display = 'none'; }
+function showLockout(icon, title, msg) {
+  document.getElementById('lockoutIcon').textContent  = icon;
+  document.getElementById('lockoutTitle').textContent = title;
+  document.getElementById('lockoutMsg').textContent   = msg;
+  document.getElementById('lockoutOverlay').style.display = 'flex';
+}
+
+// ── LOGIN ─────────────────────────────────────────────────
+window.doLogin = async function() {
+  hideError();
+  const email = document.getElementById('emailInput').value.trim();
+  const pass  = document.getElementById('passInput').value;
+  if (!email || !pass) { showError('Enter email and password.'); return; }
+
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  setStatus('Authenticating...');
+
+  try {
+    const cred = await signInWithEmailAndPassword(auth, email, pass);
+    const uid  = cred.user.uid;
+
+    setStatus('Fetching profile...');
+    const userSnap = await getDoc(doc(db,'users',uid));
+    if (!userSnap.exists()) {
+      showError('No profile found for this account.');
+      btn.disabled = false; setStatus(''); return;
+    }
+    const userData = userSnap.data();
+    const role = userData.role || 'User';
+
+    // Check permanent ban
+    if (userData.banned) {
+      showError('Your account has been permanently banned.');
+      btn.disabled = false; setStatus(''); return;
+    }
+
+    // Check temp ban
+    if (userData.tempBannedUntil) {
+      const until = userData.tempBannedUntil.seconds
+        ? userData.tempBannedUntil.seconds * 1000
+        : new Date(userData.tempBannedUntil).getTime();
+      if (Date.now() < until) {
+        showError(`You are temporarily banned until ${new Date(until).toLocaleString()}.`);
+        btn.disabled = false; setStatus(''); return;
+      }
+    }
+
+    setStatus('Checking system...');
+    const settSnap = await getDoc(doc(db,'settings','global'));
+    const settings = settSnap.exists() ? settSnap.data() : {};
+
+    // Emergency shutdown — only Owner gets through
+    if (settings.emergency && role !== 'Owner') {
+      showLockout('🚨', 'EMERGENCY SHUTDOWN', settings.emergencyMessage || 'System locked.');
+      btn.disabled = false; setStatus(''); return;
+    }
+
+    // Maintenance — only Owner + Mod get through
+    if (settings.maintenance && role === 'Staff') {
+      showLockout('🔧', 'MAINTENANCE MODE', settings.maintenanceMessage || 'System under maintenance.');
+      btn.disabled = false; setStatus(''); return;
+    }
+    if (settings.maintenance && role === 'User') {
+      showLockout('🔧', 'MAINTENANCE MODE', settings.maintenanceMessage || 'System under maintenance.');
+      btn.disabled = false; setStatus(''); return;
+    }
+
+    // ── ALL ROLES go straight to chat ─────────────────────
+    setStatus('Loading...');
+    sessionStorage.setItem('nova_uid',   uid);
+    sessionStorage.setItem('nova_email', email);
+    sessionStorage.setItem('nova_role',  role);
+
+    window.location.href = 'chat.html';
+
+  } catch(e) {
+    btn.disabled = false; setStatus('');
+    const msgs = {
+      'auth/invalid-credential':    'Invalid email or password.',
+      'auth/user-not-found':        'No account with that email.',
+      'auth/wrong-password':        'Incorrect password.',
+      'auth/too-many-requests':     'Too many attempts. Try again later.',
+      'auth/network-request-failed':'Network error. Check your connection.',
+    };
+    showError(msgs[e.code] || e.message);
+  }
+};
+
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && document.getElementById('registerModal').style.display === 'none') window.doLogin(); });
+
+// ── REGISTER ──────────────────────────────────────────────
+window.openRegister = function() {
+  document.getElementById('registerModal').style.display = 'flex';
+  document.getElementById('regError').style.display = 'none';
+  document.getElementById('regUsername').focus();
+};
+
+window.closeRegister = function() {
+  document.getElementById('registerModal').style.display = 'none';
+};
+
+window.doRegister = async function() {
+  const username = document.getElementById('regUsername').value.trim();
+  const email    = document.getElementById('regEmail').value.trim();
+  const pass     = document.getElementById('regPass').value;
+  const pass2    = document.getElementById('regPass2').value;
+  const errEl    = document.getElementById('regError');
+  const btn      = document.getElementById('regBtn');
+
+  const showRegError = msg => { errEl.textContent=msg; errEl.style.display='block'; };
+  errEl.style.display = 'none';
+
+  if (!username) { showRegError('Username is required.'); return; }
+  if (!email)    { showRegError('Email is required.'); return; }
+  if (pass.length < 6) { showRegError('Password must be at least 6 characters.'); return; }
+  if (pass !== pass2)  { showRegError('Passwords do not match.'); return; }
+
+  btn.disabled = true; btn.textContent = 'Creating...';
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+    await setDoc(doc(db,'users',cred.user.uid), {
+      email, role:'User', username,
+      warningsCount:0, banned:false, tempBannedUntil:null,
+      mutedUntil:null, pfp:'', pingCount:0, punishmentHistory:[]
+    });
+    closeRegister();
+    // Pre-fill login and let them log in
+    document.getElementById('emailInput').value = email;
+    document.getElementById('passInput').value  = pass;
+    showError('Account created! Click Login to continue.');
+    document.getElementById('errorMsg').style.background = 'rgba(63,185,80,0.1)';
+    document.getElementById('errorMsg').style.borderColor = 'rgba(63,185,80,0.3)';
+    document.getElementById('errorMsg').style.color = '#3fb950';
+    document.getElementById('errorMsg').style.display = 'block';
+  } catch(e) {
+    const msgs = {
+      'auth/email-already-in-use': 'An account with that email already exists.',
+      'auth/invalid-email':        'Invalid email address.',
+      'auth/weak-password':        'Password is too weak.',
+    };
+    showRegError(msgs[e.code] || e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Register';
+  }
+};
+</script>
+</body>
+</html>
