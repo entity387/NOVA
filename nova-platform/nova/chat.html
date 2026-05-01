@@ -275,6 +275,23 @@ let _groupSelected = new Set();
 // ── AUTH ──────────────────────────────────────────────────
 let _authResolved = false;
 
+// Defined early so it can be called from onAuthStateChanged
+function showLockoutOverlay(icon, title, message) {
+  const existing = document.getElementById('_lockoutOverlay');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.id = '_lockoutOverlay';
+  el.style.cssText = 'position:fixed;inset:0;background:rgba(8,11,16,0.97);display:flex;align-items:center;justify-content:center;z-index:9999;font-family:sans-serif';
+  el.innerHTML = `
+    <div style="text-align:center;max-width:480px;padding:48px;border:1px solid #21262d;border-radius:8px;background:#0d1117">
+      <div style="font-size:40px;margin-bottom:20px">${icon}</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:16px;letter-spacing:4px;color:#f85149;margin-bottom:12px;text-transform:uppercase">${title}</div>
+      <div style="color:#7d8590;font-size:15px;line-height:1.6;margin-bottom:24px">${message}</div>
+      <button onclick="doSignOut()" style="background:#7c3aed;border:none;color:#fff;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:600;letter-spacing:2px;padding:10px 24px;border-radius:4px;cursor:pointer;text-transform:uppercase">Sign Out</button>
+    </div>`;
+  document.body.appendChild(el);
+}
+
 onAuthStateChanged(auth, async user => {
   _authResolved = true;
   if (!user) { window.location.href='index.html'; return; }
@@ -282,6 +299,23 @@ onAuthStateChanged(auth, async user => {
   if (!snap.exists()) { window.location.href='index.html'; return; }
   ME = { uid:user.uid, ...snap.data() };
   if (!ME.username) ME.username = ME.email.split('@')[0];
+
+  // Check settings on load/reload — enforce lockouts immediately
+  const settSnap = await getDoc(doc(db,'settings','global'));
+  if (settSnap.exists()) {
+    const s = settSnap.data();
+    if (s.emergency && ME.role !== 'Owner') {
+      showLockoutOverlay('🚨', 'EMERGENCY SHUTDOWN', s.emergencyMessage || 'System locked by Owner.');
+      // Still set up sign out button
+      return;
+    }
+    if (s.maintenance && (ME.role === 'Staff' || ME.role === 'User')) {
+      showLockoutOverlay('🔧', 'MAINTENANCE MODE', s.maintenanceMessage || 'System is under maintenance.');
+      return;
+    }
+    _lastSettings = s;
+  }
+
   setupTopbar();
   await loadAllUsers();
   await buildLeft();
@@ -344,16 +378,40 @@ function watchSettings() {
     if (!snap.exists()) return;
     const s = snap.data();
     voiceMode = s.voiceMode||'agora';
+
+    // Update voice mode badge
     const tag = document.getElementById('voiceModeTag');
-    tag.style.display='';
-    if (voiceMode==='webrtc'){tag.className='voice-mode-tag vmt-webrtc';tag.textContent='WebRTC Fallback';}
-    else{tag.className='voice-mode-tag vmt-agora';tag.textContent='Agora Voice';}
+    if (tag) {
+      tag.style.display='';
+      if (voiceMode==='webrtc'){tag.className='voice-mode-tag vmt-webrtc';tag.textContent='WebRTC Fallback';}
+      else{tag.className='voice-mode-tag vmt-agora';tag.textContent='Agora Voice';}
+    }
+
+    // ── ENFORCE ACCESS RESTRICTIONS ───────────────────────
+    // Emergency shutdown — kick everyone except Owner immediately
+    if (s.emergency && ME.role !== 'Owner') {
+      await leaveVoice();
+      showLockoutOverlay('🚨', 'EMERGENCY SHUTDOWN', s.emergencyMessage || 'System locked by Owner.');
+      return;
+    }
+    // Maintenance — kick Staff and Users immediately
+    if (s.maintenance && (ME.role === 'Staff' || ME.role === 'User')) {
+      await leaveVoice();
+      showLockoutOverlay('🔧', 'MAINTENANCE MODE', s.maintenanceMessage || 'System is under maintenance.');
+      return;
+    }
+    // ── Remove lockout if modes were turned off ────────────
+    const lockout = document.getElementById('_lockoutOverlay');
+    if (lockout) lockout.remove();
+
     if (!_lastSettings){_lastSettings=s;return;}
+
     const changes=[];
     if(s.maintenance!==_lastSettings.maintenance) changes.push(s.maintenance?'🔧 Maintenance mode ENABLED':'✅ Maintenance mode DISABLED');
     if(s.emergency!==_lastSettings.emergency)     changes.push(s.emergency?'🚨 Emergency shutdown ACTIVATED':'✅ Emergency shutdown DEACTIVATED');
     if(s.debug!==_lastSettings.debug)             changes.push(s.debug?'⚡ Debug mode ENABLED':'⚡ Debug mode DISABLED');
     _lastSettings=s;
+
     for(const msg of changes){
       await addDoc(collection(db,'channels','updates','messages'),{
         text:msg,senderUid:'system',senderEmail:'NOVA System',
@@ -365,6 +423,7 @@ function watchSettings() {
     }
   });
 }
+
 
 function watchMyProfile() {
   onSnapshot(doc(db,'users',ME.uid), snap => {
