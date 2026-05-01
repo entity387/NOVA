@@ -538,11 +538,15 @@ async function buildLeft() {
       if(ai!==-1&&bi!==-1)return ai-bi;if(ai!==-1)return-1;if(bi!==-1)return 1;
       return(a.createdAt||0)-(b.createdAt||0);
     });
-  const canRestricted=['Owner','Mod','Staff'].includes(ME.role);
   let html=`<div class="left-section"><div class="left-label">Channels</div>`;
   chans.forEach(c=>{
-    if(c.restricted&&!canRestricted)return;
-    const icon=c.id==='updates'?'📢':c.restricted?'🔒':'#';
+    // Access control per channel
+    const access = c.access || (c.restricted ? 'staff' : 'all');
+    if (access === 'all') { /* everyone can see */ }
+    else if (access === 'staff' && !['Owner','Staff'].includes(ME.role)) return;
+    else if (access === 'mod'   && !['Owner','Mod'].includes(ME.role))   return;
+    else if (c.restricted && !['Owner','Mod','Staff'].includes(ME.role)) return;
+    const icon = c.id==='updates'?'📢':c.id==='mod'?'🛡':c.id==='staff'?'⚡':'#';
     html+=`<div class="chan-item" id="ci-${c.id}" onclick="openChannel('${c.id}')"><span class="chan-icon">${icon}</span><span class="chan-name">${esc(c.name||c.id)}</span></div>`;
   });
   html+=`</div><div class="left-section"><div class="left-label">Voice</div>`;
@@ -575,13 +579,19 @@ async function buildLeft() {
 }
 
 async function ensureChannels() {
-  for(const ch of [
-    {id:'general',name:'general',desc:'General discussion',restricted:false,readonly:false},
-    {id:'updates',name:'updates',desc:'System updates & announcements',restricted:false,readonly:true},
-    {id:'staff',  name:'staff',  desc:'Staff and above',restricted:true,readonly:false},
-  ]){
+  const defaults = [
+    {id:'general', name:'general', desc:'General discussion',            restricted:false, readonly:false, access:'all'},
+    {id:'updates', name:'updates', desc:'System updates & announcements',restricted:false, readonly:true,  access:'all'},
+    {id:'staff',   name:'staff',   desc:'Staff team channel',            restricted:true,  readonly:false, access:'staff'},
+    {id:'mod',     name:'mod',     desc:'Mod team channel',              restricted:true,  readonly:false, access:'mod'},
+  ];
+  for(const ch of defaults){
     const s=await getDoc(doc(db,'channels',ch.id));
     if(!s.exists()) await setDoc(doc(db,'channels',ch.id),{...ch,createdAt:Date.now()});
+    else {
+      // Update existing channels with correct access level
+      await setDoc(doc(db,'channels',ch.id),{...ch,createdAt:s.data().createdAt||Date.now()},{merge:true});
+    }
   }
 }
 

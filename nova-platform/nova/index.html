@@ -132,9 +132,10 @@ async function bootstrapOwner() {
     });
     // Seed default channels
     for (const ch of [
-      {id:'general', name:'general', desc:'General discussion',              restricted:false, readonly:false},
-      {id:'updates', name:'updates', desc:'System updates & announcements',  restricted:false, readonly:true},
-      {id:'staff',   name:'staff',   desc:'Staff and above only',            restricted:true,  readonly:false},
+      {id:'general', name:'general', desc:'General discussion',             restricted:false, readonly:false, access:'all'},
+      {id:'updates', name:'updates', desc:'System updates & announcements', restricted:false, readonly:true,  access:'all'},
+      {id:'staff',   name:'staff',   desc:'Staff team channel',             restricted:true,  readonly:false, access:'staff'},
+      {id:'mod',     name:'mod',     desc:'Mod team channel',               restricted:true,  readonly:false, access:'mod'},
     ]) await setDoc(doc(db,'channels',ch.id), {...ch, createdAt:Date.now()});
     await setDoc(doc(db,'channels','devalerts'), {name:'devalerts', private:true, createdAt:Date.now()});
     await auth.signOut();

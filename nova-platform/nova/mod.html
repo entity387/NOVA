@@ -578,6 +578,19 @@ window.saveUser = async function(uid2, uname, canChangeRole) {
   if (history.length) updates.punishmentHistory = arrayUnion(...history);
   if (Object.keys(updates).length) await updateDoc(doc(db,'users',uid2), updates);
   await writeLog(`Updated user ${uname}`);
+
+  // Post welcome message when promoted to Staff
+  // (Mod can only promote to Staff, not Mod)
+  if (typeof newRole !== 'undefined' && newRole === 'Staff') {
+    const welcomeText = '⚡ Welcome to the team, @' + uname + '!\n\nYou now have access to the Staff Dashboard where you can manage tickets, warn and mute users, and escalate issues to Mods.\n\nIf you have any questions reach out to a Mod or the Owner. Welcome aboard! — NOVA Team';
+    await addDoc(collection(db,'channels','staff','messages'), {
+      text: welcomeText,
+      senderUid:'system', senderEmail:'NOVA System',
+      senderUsername:'NOVA System', senderRole:'System',
+      timestamp:Date.now(), system:true,
+    });
+  }
+
   closeModal(); users();
 };
 
