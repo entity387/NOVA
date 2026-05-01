@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOVA — Chat</title>
+<script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.20.0.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+:root{
+  --bg:#080b10;--surface:#0d1117;--surface2:#161b22;--surface3:#1c2128;
+  --border:#21262d;--border2:#30363d;
+  --accent:#7c3aed;--accent2:#a855f7;--accent-glow:rgba(124,58,237,0.25);
+  --text:#e6edf3;--text-muted:#8b949e;--text-dim:#484f58;
+  --success:#3fb950;--danger:#f85149;--warn:#d29922;--info:#58a6ff;
+  --gold:#ffd700;--gold-dim:rgba(255,215,0,0.12);--gold-border:rgba(255,215,0,0.4);
+  --mono:'Share Tech Mono',monospace;--ui:'Rajdhani',sans-serif;
+  --left-w:240px;--right-w:220px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:var(--ui);display:flex;flex-direction:column;}
+.topbar{height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 18px;flex-shrink:0;z-index:50;}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.logo{font-family:var(--mono);font-size:18px;letter-spacing:6px;}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.user-info{display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 8px;border-radius:5px;transition:background 0.15s;}
+.user-info:hover{background:var(--surface2);}
+.avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px;font-weight:700;flex-shrink:0;overflow:hidden;position:relative;cursor:pointer;}
+.avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.ping-badge{position:absolute;top:-3px;right:-3px;background:var(--danger);color:#fff;font-family:var(--mono);font-size:8px;font-weight:700;min-width:14px;height:14px;border-radius:7px;display:flex;align-items:center;justify-content:center;padding:0 2px;border:2px solid var(--bg);}
+.av-owner{background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-border);}
+.av-mod{background:rgba(88,166,255,0.2);color:var(--info);border:1px solid rgba(88,166,255,0.3);}
+.av-staff{background:rgba(63,185,80,0.2);color:var(--success);border:1px solid rgba(63,185,80,0.3);}
+.av-user{background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);}
+.role-badge{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;padding:2px 7px;border-radius:3px;text-transform:uppercase;display:inline-flex;align-items:center;gap:3px;}
+.rb-owner{background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-border);}
+.rb-mod{background:rgba(88,166,255,0.15);color:var(--info);border:1px solid rgba(88,166,255,0.3);}
+.rb-staff{background:rgba(63,185,80,0.15);color:var(--success);border:1px solid rgba(63,185,80,0.3);}
+.username-display{font-size:14px;font-weight:600;color:var(--text);}
+.btn-top{background:none;border:1px solid var(--border);color:var(--text-muted);font-family:var(--ui);font-size:12px;font-weight:500;padding:5px 12px;border-radius:4px;cursor:pointer;transition:all 0.15s;letter-spacing:1px;white-space:nowrap;}
+.btn-top:hover{border-color:var(--accent);color:var(--accent2);}
+.btn-dashboard{background:rgba(124,58,237,0.12);border-color:rgba(124,58,237,0.35);color:var(--accent2);}
+.btn-dashboard:hover{background:rgba(124,58,237,0.22);}
+.voice-mode-tag{font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:3px;letter-spacing:1px;}
+.vmt-agora{background:rgba(63,185,80,0.1);color:var(--success);border:1px solid rgba(63,185,80,0.2);}
+.vmt-webrtc{background:rgba(210,153,34,0.1);color:var(--warn);border:1px solid rgba(210,153,34,0.2);}
+.chat-layout{flex:1;display:flex;overflow:hidden;}
+.left-panel{width:var(--left-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
+.left-panel::-webkit-scrollbar{width:3px;}
+.left-panel::-webkit-scrollbar-thumb{background:var(--border2);}
+.left-section{padding:10px 0 2px;}
+.left-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;padding:0 12px 5px;display:flex;align-items:center;justify-content:space-between;}
+.left-label-btn{background:none;border:none;color:var(--text-dim);font-size:16px;cursor:pointer;line-height:1;padding:0 2px;transition:color 0.12s;}
+.left-label-btn:hover{color:var(--accent2);}
+.chan-item{display:flex;align-items:center;gap:7px;padding:6px 12px;cursor:pointer;border-radius:4px;margin:1px 5px;font-size:13px;font-weight:500;color:var(--text-muted);transition:background 0.1s,color 0.1s;}
+.chan-item:hover{background:var(--surface2);color:var(--text);}
+.chan-item.active{background:rgba(124,58,237,0.13);color:var(--text);}
+.chan-icon{font-size:12px;color:var(--text-dim);width:15px;text-align:center;flex-shrink:0;}
+.chan-item.active .chan-icon{color:var(--accent2);}
+.chan-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.voice-item{padding:5px 12px;margin:1px 5px;border-radius:4px;cursor:pointer;transition:background 0.1s;}
+.voice-item:hover{background:var(--surface2);}
+.voice-item.in-room{background:rgba(63,185,80,0.07);border:1px solid rgba(63,185,80,0.15);}
+.voice-item-row{display:flex;align-items:center;gap:7px;}
+.voice-item-icon{font-size:11px;color:var(--text-dim);}
+.voice-item-name{font-size:13px;font-weight:500;color:var(--text-muted);}
+.voice-item.in-room .voice-item-name{color:var(--success);}
+.voice-part-list{padding-left:22px;margin-top:2px;}
+.voice-part{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-dim);padding:1px 0;}
+.center-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.chan-header{height:50px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:10px;flex-shrink:0;background:var(--surface);}
+.chan-header-icon{font-size:14px;color:var(--text-dim);}
+.chan-header-name{font-size:15px;font-weight:700;}
+.chan-header-desc{font-size:12px;color:var(--text-muted);}
+.chan-readonly-tag{margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--text-dim);background:var(--surface2);padding:3px 8px;border-radius:3px;border:1px solid var(--border);}
+.messages-area{flex:1;overflow-y:auto;padding:10px 0;display:flex;flex-direction:column;}
+.messages-area::-webkit-scrollbar{width:4px;}
+.messages-area::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.msg-group{display:flex;gap:10px;padding:3px 18px;animation:msgIn 0.12s ease;position:relative;}
+@keyframes msgIn{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
+.msg-group:hover{background:rgba(255,255,255,0.014);}
+.msg-group.pinged{background:rgba(124,58,237,0.07);border-left:2px solid var(--accent);}
+.msg-av-wrap{width:34px;height:34px;border-radius:50%;flex-shrink:0;margin-top:2px;overflow:hidden;}
+.msg-av-wrap img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.msg-av-inner{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:700;}
+.msg-body{flex:1;min-width:0;}
+.msg-meta{display:flex;align-items:baseline;gap:6px;margin-bottom:2px;flex-wrap:wrap;}
+.msg-author{font-size:14px;font-weight:700;}
+.msg-author.owner{color:var(--gold);}
+.msg-author.mod{color:var(--info);}
+.msg-author.staff{color:var(--success);}
+.msg-author.user{color:var(--text);}
+.msg-role-tag{font-family:var(--mono);font-size:8px;padding:1px 5px;border-radius:2px;text-transform:uppercase;}
+.msg-time{font-family:var(--mono);font-size:9px;color:var(--text-dim);}
+.msg-text{font-size:14px;color:var(--text-muted);line-height:1.55;word-break:break-word;}
+.mention{color:var(--accent2);background:rgba(124,58,237,0.1);padding:0 3px;border-radius:2px;cursor:pointer;font-weight:600;}
+.mention-everyone{color:var(--gold);background:rgba(255,215,0,0.08);padding:0 3px;border-radius:2px;font-weight:700;}
+.system-msg{font-family:var(--mono);font-size:11px;color:var(--accent2);background:rgba(124,58,237,0.06);border-left:2px solid var(--accent);padding:5px 10px;border-radius:0 4px 4px 0;}
+.reply-quote{background:var(--surface2);border-left:2px solid var(--border2);padding:3px 8px;border-radius:0 3px 3px 0;margin-bottom:3px;font-size:11px;color:var(--text-dim);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.reply-quote:hover{border-left-color:var(--accent);}
+.reply-quote-author{color:var(--text-muted);font-weight:600;margin-right:5px;}
+.msg-actions{display:none;position:absolute;right:18px;top:2px;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 3px;z-index:10;}
+.msg-group:hover .msg-actions{display:flex;}
+.mab{background:none;border:none;color:var(--text-dim);font-size:11px;padding:3px 6px;border-radius:3px;cursor:pointer;font-family:var(--ui);transition:all 0.1s;}
+.mab:hover{background:var(--surface2);color:var(--text);}
+.mab.danger:hover{color:var(--danger);}
+.date-div{display:flex;align-items:center;gap:10px;padding:10px 18px;color:var(--text-dim);font-family:var(--mono);font-size:9px;letter-spacing:1px;}
+.date-div::before,.date-div::after{content:'';flex:1;height:1px;background:var(--border);}
+.empty-chat{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-dim);font-family:var(--mono);font-size:11px;letter-spacing:2px;gap:8px;}
+.empty-icon{font-size:28px;opacity:0.3;}
+.input-wrap{flex-shrink:0;background:var(--surface);border-top:1px solid var(--border);}
+.reply-bar{display:flex;align-items:center;gap:8px;padding:5px 14px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:12px;color:var(--text-muted);}
+.reply-bar-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.reply-bar-close{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:16px;line-height:1;}
+.reply-bar-close:hover{color:var(--danger);}
+.input-row{display:flex;align-items:flex-end;gap:8px;padding:10px 14px;}
+.input-box{flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:8px 12px;transition:border-color 0.15s;}
+.input-box:focus-within{border-color:var(--accent);}
+.input-box textarea{width:100%;background:none;border:none;outline:none;color:var(--text);font-family:var(--ui);font-size:14px;resize:none;height:22px;max-height:110px;overflow-y:auto;line-height:1.4;}
+.input-box textarea::placeholder{color:var(--text-dim);}
+.btn-send{background:var(--accent);border:none;color:#fff;font-family:var(--ui);font-size:12px;font-weight:700;letter-spacing:2px;padding:9px 16px;border-radius:5px;cursor:pointer;transition:background 0.12s;flex-shrink:0;}
+.btn-send:hover{background:var(--accent2);}
+.btn-send:disabled{opacity:0.3;cursor:not-allowed;}
+.input-hint{font-family:var(--mono);font-size:9px;color:var(--text-dim);padding:0 14px 7px;letter-spacing:0.5px;}
+.readonly-bar{text-align:center;padding:14px;font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--text-dim);}
+.blocked-bar{padding:10px 14px;margin:8px 14px;font-family:var(--mono);font-size:11px;border-radius:4px;}
+.blocked-muted{background:rgba(210,153,34,0.08);border:1px solid rgba(210,153,34,0.2);color:var(--warn);}
+.blocked-banned{background:rgba(248,81,73,0.08);border:1px solid rgba(248,81,73,0.2);color:var(--danger);}
+.right-panel{width:var(--right-w);background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
+.right-section{padding:12px 0 6px;border-bottom:1px solid var(--border);}
+.right-section:last-child{border-bottom:none;}
+.right-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;padding:0 12px 8px;display:flex;align-items:center;justify-content:space-between;}
+.member-item{display:flex;align-items:center;gap:7px;padding:5px 12px;border-radius:4px;margin:1px 4px;cursor:default;transition:background 0.1s;}
+.member-item:hover{background:var(--surface2);}
+.member-av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:8px;font-weight:700;flex-shrink:0;overflow:hidden;}
+.member-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.member-name{font-size:12px;font-weight:600;color:var(--text-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.online-dot{width:6px;height:6px;border-radius:50%;background:var(--success);flex-shrink:0;opacity:0.5;}
+.voice-active-box{margin:6px 10px;background:rgba(63,185,80,0.06);border:1px solid rgba(63,185,80,0.18);border-radius:6px;padding:10px 12px;}
+.vab-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.vab-name{font-size:13px;font-weight:600;color:var(--success);}
+.vab-btns{display:flex;gap:5px;}
+.vab-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);font-size:11px;padding:3px 9px;border-radius:3px;cursor:pointer;font-family:var(--ui);transition:all 0.1s;}
+.vab-btn:hover{border-color:var(--accent);color:var(--accent2);}
+.vab-btn.muted-state{border-color:rgba(248,81,73,0.35);color:var(--danger);}
+.vab-btn.leave-btn:hover{border-color:var(--danger);color:var(--danger);}
+.voice-join-row{display:flex;align-items:center;gap:7px;padding:7px 12px;margin:1px 8px;border:1px solid var(--border);border-radius:4px;cursor:pointer;background:none;color:var(--text-muted);font-size:13px;font-weight:500;width:calc(100% - 16px);text-align:left;transition:all 0.1s;font-family:var(--ui);}
+.voice-join-row:hover{border-color:var(--success);color:var(--success);background:rgba(63,185,80,0.06);}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:500;backdrop-filter:blur(3px);animation:fadeIn 0.15s ease;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:24px;width:100%;max-width:460px;max-height:88vh;overflow-y:auto;animation:slideUp 0.18s ease;}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+.modal-title{font-family:var(--mono);font-size:11px;letter-spacing:3px;color:var(--text-muted);text-transform:uppercase;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid var(--border);flex-wrap:wrap;}
+.form-group{margin-bottom:14px;}
+.form-label{display:block;font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:6px;}
+.form-input,.form-select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:13px;padding:9px 11px;outline:none;transition:border-color 0.15s;}
+.form-input:focus,.form-select:focus{border-color:var(--accent);}
+.form-select option{background:var(--surface2);}
+.btn{background:none;border:1px solid var(--border);color:var(--text-muted);font-family:var(--ui);font-size:13px;font-weight:500;letter-spacing:1px;padding:6px 14px;border-radius:4px;cursor:pointer;transition:all 0.12s;}
+.btn:hover{border-color:var(--accent);color:var(--accent2);}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn-primary:hover{background:var(--accent2);border-color:var(--accent2);}
+.user-pick-list{max-height:240px;overflow-y:auto;margin-bottom:10px;}
+.upi{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:4px;cursor:pointer;transition:background 0.1s;}
+.upi:hover{background:var(--surface2);}
+.upi.selected{background:rgba(124,58,237,0.1);}
+.upi-name{font-size:13px;font-weight:600;color:var(--text-muted);}
+.upi-role{font-family:var(--mono);font-size:9px;color:var(--text-dim);}
+.pfp-wrap{position:relative;width:72px;height:72px;margin:0 auto 12px;cursor:pointer;}
+.pfp-wrap img,.pfp-inner{width:72px;height:72px;border-radius:50%;object-fit:cover;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:24px;font-weight:700;}
+.pfp-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s;font-size:20px;}
+.pfp-wrap:hover .pfp-overlay{opacity:1;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="logo">NOVA</span>
+    <span style="font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--text-dim)">chat</span>
+  </div>
+  <div class="topbar-right">
+    <span id="voiceModeTag" style="display:none"></span>
+    <div class="user-info" onclick="openProfile()">
+      <div class="avatar av-user" id="topAv">
+        <span id="topAvInitial">?</span>
+        <div class="ping-badge" id="pingBadge" style="display:none">0</div>
+      </div>
+      <div>
+        <div class="username-display" id="topUsername">...</div>
+        <div style="margin-top:1px"><span class="role-badge" id="topRoleBadge" style="display:none"></span></div>
+      </div>
+    </div>
+    <button class="btn-top btn-dashboard" id="dashBtn" style="display:none" onclick="goToDashboard()">⚙ Dashboard</button>
+    <button class="btn-top" onclick="doSignOut()">Sign Out</button>
+  </div>
+</div>
+
+<div class="chat-layout">
+  <div class="left-panel" id="leftPanel"></div>
+  <div class="center-panel">
+    <div class="chan-header" id="chanHeader">
+      <span class="chan-header-icon" id="chanIcon">#</span>
+      <span class="chan-header-name" id="chanName">Select a channel</span>
+      <span class="chan-header-desc" id="chanDesc"></span>
+      <span class="chan-readonly-tag" id="chanReadonlyTag" style="display:none">READ ONLY</span>
+    </div>
+    <div class="messages-area" id="messagesArea">
+      <div class="empty-chat"><div class="empty-icon">💬</div><div>Select a channel to start</div></div>
+    </div>
+    <div id="inputWrap"></div>
+  </div>
+  <div class="right-panel">
+    <div class="right-section">
+      <div class="right-label">Members <span id="memberCount" style="color:var(--text-dim)">0</span></div>
+      <div id="memberList"></div>
+    </div>
+    <div class="right-section" id="voiceSection">
+      <div class="right-label">Voice</div>
+      <div id="voiceRoomList"></div>
+    </div>
+  </div>
+</div>
+
+<div id="modalContainer"></div>
+<input type="file" id="pfpInput" accept="image/*" style="display:none" onchange="handlePfpUpload(event)">
+
+<script type="module">
+import { initializeApp }          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc,
+  deleteDoc, query, orderBy, limit, onSnapshot, setDoc, arrayUnion, increment
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyClEfbrTpSwVPpThWZJukobJN9tCKMXTx4",
+  authDomain: "nova-7a26f.firebaseapp.com",
+  projectId: "nova-7a26f",
+  storageBucket: "nova-7a26f.firebasestorage.app",
+  messagingSenderId: "98300801242",
+  appId: "1:98300801242:web:77c16453b6dac8fed3b5e3",
+  measurementId: "G-67N1G1RFMS"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+const AGORA_APP_ID = '61a2cb98018e48f29c45de8c4a02a9af';
+const VOICE_ROOMS  = [
+  { id:'voice-general', name:'General Voice',  restricted:false },
+  { id:'voice-staff',   name:'Staff Voice',    restricted:true  },
+  { id:'voice-meetings',name:'Meetings',        restricted:true  },
+];
+
+let ME = null;
+let allUsers = {};
+let currentChan = null;
+let msgUnsub = null;
+let replyTo  = null;
+let voiceMode = 'agora';
+let currentVoiceRoom = null;
+let agoraClient = null;
+let agoraLocalTrack = null;
+let isMuted = false;
+let _lastSettings = null;
+let _groupSelected = new Set();
+
+// ── AUTH ──────────────────────────────────────────────────
+onAuthStateChanged(auth, async user => {
+  if (!user) { window.location.href='index.html'; return; }
+  const snap = await getDoc(doc(db,'users',user.uid));
+  if (!snap.exists()) { window.location.href='index.html'; return; }
+  ME = { uid:user.uid, ...snap.data() };
+  if (!ME.username) ME.username = ME.email.split('@')[0];
+  setupTopbar();
+  await loadAllUsers();
+  await buildLeft();
+  watchSettings();
+  watchMyProfile();
+});
+
+// ── TOPBAR ────────────────────────────────────────────────
+function setupTopbar() {
+  const r=ME.role; const uname=ME.username||ME.email||'?';
+  const avEl = document.getElementById('topAv');
+  avEl.className = `avatar ${avCls(r)}`;
+  if (ME.pfp) {
+    avEl.innerHTML = `<img src="${ME.pfp}"><div class="ping-badge" id="pingBadge" style="display:none">0</div>`;
+  } else {
+    avEl.innerHTML = `<span id="topAvInitial">${uname[0].toUpperCase()}</span><div class="ping-badge" id="pingBadge" style="display:none">0</div>`;
+  }
+  document.getElementById('topUsername').textContent = uname;
+  const rb = document.getElementById('topRoleBadge');
+  if (r==='Owner')      { rb.style.display=''; rb.className='role-badge rb-owner'; rb.textContent='👑 Owner'; }
+  else if (r==='Mod')   { rb.style.display=''; rb.className='role-badge rb-mod';   rb.textContent='🛡 Mod'; }
+  else if (r==='Staff') { rb.style.display=''; rb.className='role-badge rb-staff'; rb.textContent='⚡ Staff'; }
+  else rb.style.display = 'none';
+  if (['Owner','Mod','Staff'].includes(r)) document.getElementById('dashBtn').style.display='';
+}
+
+function avCls(r) {
+  return r==='Owner'?'av-owner':r==='Mod'?'av-mod':r==='Staff'?'av-staff':'av-user';
+}
+
+function roleMsgTag(r) {
+  if (r==='Owner') return `<span class="msg-role-tag rb-owner">👑 Owner</span>`;
+  if (r==='Mod')   return `<span class="msg-role-tag rb-mod">🛡 Mod</span>`;
+  if (r==='Staff') return `<span class="msg-role-tag rb-staff">⚡ Staff</span>`;
+  return '';
+}
+
+window.goToDashboard = () => {
+  const routes={Owner:'owner.html',Mod:'mod.html',Staff:'staff.html'};
+  window.location.href=routes[ME.role]||'chat.html';
+};
+
+window.doSignOut = async () => {
+  await leaveVoice();
+  await signOut(auth);
+  sessionStorage.clear();
+  window.location.href='index.html';
+};
+
+// ── WATCHERS ─────────────────────────────────────────────
+function watchSettings() {
+  onSnapshot(doc(db,'settings','global'), async snap => {
+    if (!snap.exists()) return;
+    const s = snap.data();
+    voiceMode = s.voiceMode||'agora';
+    const tag = document.getElementById('voiceModeTag');
+    tag.style.display='';
+    if (voiceMode==='webrtc'){tag.className='voice-mode-tag vmt-webrtc';tag.textContent='WebRTC Fallback';}
+    else{tag.className='voice-mode-tag vmt-agora';tag.textContent='Agora Voice';}
+    if (!_lastSettings){_lastSettings=s;return;}
+    const changes=[];
+    if(s.maintenance!==_lastSettings.maintenance) changes.push(s.maintenance?'🔧 Maintenance mode ENABLED':'✅ Maintenance mode DISABLED');
+    if(s.emergency!==_lastSettings.emergency)     changes.push(s.emergency?'🚨 Emergency shutdown ACTIVATED':'✅ Emergency shutdown DEACTIVATED');
+    if(s.debug!==_lastSettings.debug)             changes.push(s.debug?'⚡ Debug mode ENABLED':'⚡ Debug mode DISABLED');
+    _lastSettings=s;
+    for(const msg of changes){
+      await addDoc(collection(db,'channels','updates','messages'),{
+        text:msg,senderUid:'system',senderEmail:'NOVA System',
+        senderUsername:'NOVA System',senderRole:'System',
+        timestamp:Date.now(),system:true
+      });
+      const usersSnap=await getDocs(collection(db,'users'));
+      for(const d of usersSnap.docs) await updateDoc(doc(db,'users',d.id),{pingCount:increment(1)});
+    }
+  });
+}
+
+function watchMyProfile() {
+  onSnapshot(doc(db,'users',ME.uid), snap => {
+    if (!snap.exists()) return;
+    const data=snap.data();
+    ME.pingCount=data.pingCount||0;
+    ME.mutedUntil=data.mutedUntil;
+    ME.banned=data.banned;
+    ME.pfp=data.pfp||'';
+    ME.username=data.username||ME.email.split('@')[0];
+    const badge=document.getElementById('pingBadge');
+    if(badge){if(ME.pingCount>0){badge.style.display='flex';badge.textContent=ME.pingCount>99?'99+':ME.pingCount;}else badge.style.display='none';}
+  });
+}
+
+// ── USERS ─────────────────────────────────────────────────
+async function loadAllUsers() {
+  const snap=await getDocs(collection(db,'users'));
+  snap.docs.forEach(d=>{allUsers[d.id]={uid:d.id,...d.data()};});
+}
+
+// ── BUILD LEFT PANEL ──────────────────────────────────────
+async function buildLeft() {
+  await ensureChannels();
+  const chanSnap=await getDocs(collection(db,'channels'));
+  const chans=chanSnap.docs.map(d=>({id:d.id,...d.data()}))
+    .filter(c=>c.id!=='devalerts')
+    .sort((a,b)=>{
+      const ord=['updates','general','staff'];
+      const ai=ord.indexOf(a.id),bi=ord.indexOf(b.id);
+      if(ai!==-1&&bi!==-1)return ai-bi;if(ai!==-1)return-1;if(bi!==-1)return 1;
+      return(a.createdAt||0)-(b.createdAt||0);
+    });
+  const canRestricted=['Owner','Mod','Staff'].includes(ME.role);
+  let html=`<div class="left-section"><div class="left-label">Channels</div>`;
+  chans.forEach(c=>{
+    if(c.restricted&&!canRestricted)return;
+    const icon=c.id==='updates'?'📢':c.restricted?'🔒':'#';
+    html+=`<div class="chan-item" id="ci-${c.id}" onclick="openChannel('${c.id}')"><span class="chan-icon">${icon}</span><span class="chan-name">${esc(c.name||c.id)}</span></div>`;
+  });
+  html+=`</div><div class="left-section"><div class="left-label">Voice</div>`;
+  VOICE_ROOMS.forEach(vr=>{
+    if(vr.restricted&&!canRestricted)return;
+    html+=`<div class="voice-item" id="vi-${vr.id}" onclick="joinVoice('${vr.id}','${vr.name}')">
+      <div class="voice-item-row"><span class="voice-item-icon">🔊</span><span class="voice-item-name">${vr.name}</span><span style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-left:auto" id="vpc-${vr.id}"></span></div>
+      <div class="voice-part-list" id="vp-${vr.id}"></div>
+    </div>`;
+  });
+  html+=`</div>
+  <div class="left-section">
+    <div class="left-label">Direct Messages <button class="left-label-btn" onclick="openDMPicker()">+</button></div>
+    <div id="dmList"></div>
+  </div>
+  <div class="left-section">
+    <div class="left-label">Groups <button class="left-label-btn" onclick="openGroupCreator()">+</button></div>
+    <div id="groupList"></div>
+  </div>`;
+  document.getElementById('leftPanel').innerHTML=html;
+  await loadDMList();
+  await loadGroupList();
+  watchVoicePresence();
+  openChannel('general');
+}
+
+async function ensureChannels() {
+  for(const ch of [
+    {id:'general',name:'general',desc:'General discussion',restricted:false,readonly:false},
+    {id:'updates',name:'updates',desc:'System updates & announcements',restricted:false,readonly:true},
+    {id:'staff',  name:'staff',  desc:'Staff and above',restricted:true,readonly:false},
+  ]){
+    const s=await getDoc(doc(db,'channels',ch.id));
+    if(!s.exists()) await setDoc(doc(db,'channels',ch.id),{...ch,createdAt:Date.now()});
+  }
+}
+
+// ── OPEN CHANNEL ─────────────────────────────────────────
+window.openChannel = async function(chanId) {
+  setActive('ci-'+chanId);
+  if(msgUnsub){msgUnsub();msgUnsub=null;}
+  replyTo=null;
+  const snap=await getDoc(doc(db,'channels',chanId));
+  if(!snap.exists())return;
+  const data=snap.data();
+  currentChan={id:chanId,data,type:'channel'};
+  document.getElementById('chanIcon').textContent=chanId==='updates'?'📢':data.restricted?'🔒':'#';
+  document.getElementById('chanName').textContent=data.name||chanId;
+  document.getElementById('chanDesc').textContent=data.desc?'— '+data.desc:'';
+  document.getElementById('chanReadonlyTag').style.display=data.readonly?'':'none';
+  renderInput();
+  updateMembers();
+  const q=query(collection(db,'channels',chanId,'messages'),orderBy('timestamp','asc'),limit(100));
+  msgUnsub=onSnapshot(q,snap=>renderMsgs(snap.docs));
+  clearMyPings();
+};
+
+// ── OPEN DM ───────────────────────────────────────────────
+window.openDM = function(dmId,otherUid) {
+  setActive('ci-dm-'+dmId);
+  if(msgUnsub){msgUnsub();msgUnsub=null;}
+  replyTo=null;
+  const other=allUsers[otherUid]||{email:'Unknown',role:'User',username:'Unknown'};
+  currentChan={id:dmId,data:{name:other.username||other.email,otherUid},type:'dm'};
+  document.getElementById('chanIcon').textContent='✉';
+  document.getElementById('chanName').textContent=other.username||other.email;
+  document.getElementById('chanDesc').textContent='— Direct Message';
+  document.getElementById('chanReadonlyTag').style.display='none';
+  renderInput();
+  document.getElementById('memberCount').textContent=2;
+  document.getElementById('memberList').innerHTML=[ME,other].map(u=>memberRow(u)).join('');
+  const q=query(collection(db,'dms',dmId,'messages'),orderBy('timestamp','asc'),limit(100));
+  msgUnsub=onSnapshot(q,snap=>renderMsgs(snap.docs));
+};
+
+// ── OPEN GROUP ────────────────────────────────────────────
+window.openGroup = function(groupId) {
+  setActive('ci-grp-'+groupId);
+  if(msgUnsub){msgUnsub();msgUnsub=null;}
+  replyTo=null;
+  getDoc(doc(db,'groups',groupId)).then(snap=>{
+    if(!snap.exists())return;
+    const g=snap.data();
+    currentChan={id:groupId,data:{...g,isGroup:true},type:'group'};
+    document.getElementById('chanIcon').textContent='👥';
+    document.getElementById('chanName').textContent=g.name||'Group';
+    document.getElementById('chanDesc').textContent=`— ${(g.members||[]).length} members`;
+    document.getElementById('chanReadonlyTag').style.display='none';
+    renderInput(true);
+    const members=(g.members||[]).map(u=>allUsers[u]).filter(Boolean);
+    document.getElementById('memberCount').textContent=members.length;
+    document.getElementById('memberList').innerHTML=members.map(u=>memberRow(u)).join('');
+    const q=query(collection(db,'groups',groupId,'messages'),orderBy('timestamp','asc'),limit(100));
+    msgUnsub=onSnapshot(q,snap=>renderMsgs(snap.docs));
+  });
+};
+
+function setActive(id) {
+  document.querySelectorAll('.chan-item').forEach(el=>el.classList.remove('active'));
+  const el=document.getElementById(id);if(el)el.classList.add('active');
+}
+
+// ── INPUT ─────────────────────────────────────────────────
+function renderInput(isGroup=false) {
+  const wrap=document.getElementById('inputWrap');
+  if(!currentChan){wrap.innerHTML='';return;}
+  const data=currentChan.data;
+  // Updates — owner only
+  if(currentChan.type==='channel'&&data.readonly){
+    if(ME.role==='Owner'){wrap.innerHTML=buildInput(`Message #updates`);attachInput();}
+    else wrap.innerHTML=`<div class="readonly-bar">📢 This channel is read-only</div>`;
+    return;
+  }
+  if(ME.banned){wrap.innerHTML=`<div class="input-wrap"><div class="blocked-bar blocked-banned">⛔ You are permanently banned.</div></div>`;return;}
+  const now=Date.now();
+  if(ME.mutedUntil){
+    const until=ME.mutedUntil.seconds?ME.mutedUntil.seconds*1000:new Date(ME.mutedUntil).getTime();
+    if(now<until){wrap.innerHTML=`<div class="input-wrap"><div class="blocked-bar blocked-muted">🔇 Muted until ${new Date(until).toLocaleString()}</div></div>`;return;}
+  }
+  wrap.innerHTML=buildInput(`Message ${currentChan.type==='dm'?data.name:data.name||'...'}`,isGroup);
+  attachInput();
+}
+
+function buildInput(ph,isGroup=false){
+  const rb=replyTo?`<div class="reply-bar"><span style="color:var(--accent2);font-weight:600;font-size:12px;margin-right:4px">↩</span><span style="color:var(--text-muted);font-weight:600;margin-right:5px;font-size:12px">${esc(replyTo.author)}</span><span class="reply-bar-text" style="font-size:12px">${esc(replyTo.text)}</span><button class="reply-bar-close" onclick="cancelReply()">×</button></div>`:'';
+  const callBtn=isGroup
+    ?`<button class="btn-top" style="padding:8px" onclick="startGroupCall()" title="Group call">📞</button>`
+    :currentChan?.type==='dm'
+      ?`<button class="btn-top" style="padding:8px" onclick="startDMCall()" title="DM call">📞</button>`
+      :'';
+  return`<div class="input-wrap">${rb}<div class="input-row"><div class="input-box"><textarea id="msgInput" placeholder="${ph}" rows="1"></textarea></div>${callBtn}<button class="btn-send" onclick="sendMsg()">SEND</button></div><div class="input-hint">Enter to send · Shift+Enter new line · @name to ping · @everyone (Owner only)</div></div>`;
+}
+
+function attachInput(){
+  const ta=document.getElementById('msgInput');if(!ta)return;
+  ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}});
+  ta.addEventListener('input',()=>{ta.style.height='';ta.style.height=Math.min(ta.scrollHeight,110)+'px';});
+  ta.focus();
+}
+
+window.cancelReply=()=>{replyTo=null;renderInput(currentChan?.type==='group');};
+
+// ── SEND ──────────────────────────────────────────────────
+window.sendMsg = async function(){
+  const ta=document.getElementById('msgInput');if(!ta)return;
+  const text=ta.value.trim();if(!text)return;
+  ta.value='';ta.style.height='';
+  const msgData={
+    text,senderUid:ME.uid,senderEmail:ME.email,
+    senderUsername:ME.username||ME.email,
+    senderRole:ME.role,senderPfp:ME.pfp||'',
+    timestamp:Date.now(),system:false,
+    replyTo:replyTo?{id:replyTo.id,author:replyTo.author,text:replyTo.text.slice(0,80)}:null,
+  };
+  replyTo=null;
+  let colRef;
+  if(currentChan.type==='channel')     colRef=collection(db,'channels',currentChan.id,'messages');
+  else if(currentChan.type==='dm')     colRef=collection(db,'dms',currentChan.id,'messages');
+  else if(currentChan.type==='group')  colRef=collection(db,'groups',currentChan.id,'messages');
+  if(!colRef)return;
+  await addDoc(colRef,msgData);
+  // Pings
+  const everyone=text.toLowerCase().includes('@everyone')&&ME.role==='Owner';
+  if(everyone){
+    const usersSnap=await getDocs(collection(db,'users'));
+    for(const d of usersSnap.docs)if(d.id!==ME.uid)await updateDoc(doc(db,'users',d.id),{pingCount:increment(1)});
+  }else{
+    const mentionRx=/@(\w+)/g; let m;
+    while((m=mentionRx.exec(text))!==null){
+      const handle=m[1].toLowerCase();
+      const target=Object.values(allUsers).find(u=>(u.username||u.email||'').toLowerCase().startsWith(handle));
+      if(target&&target.uid!==ME.uid)await updateDoc(doc(db,'users',target.uid),{pingCount:increment(1)});
+    }
+  }
+};
+
+// ── RENDER MESSAGES ───────────────────────────────────────
+function renderMsgs(docs){
+  const area=document.getElementById('messagesArea');
+  if(!docs.length){area.innerHTML=`<div class="empty-chat"><div class="empty-icon">💬</div><div>No messages yet</div></div>`;return;}
+  const atBottom=area.scrollHeight-area.clientHeight-area.scrollTop<60;
+  let html='';let lastDate='';
+  docs.forEach(d=>{
+    const msg=d.data();const mid=d.id;
+    const ms=msg.timestamp?(msg.timestamp.seconds?msg.timestamp.seconds*1000:msg.timestamp):Date.now();
+    const ds=new Date(ms).toLocaleDateString();
+    if(ds!==lastDate){html+=`<div class="date-div">${ds}</div>`;lastDate=ds;}
+    const ts=new Date(ms).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    const role=msg.senderRole||'User';
+    const rc=role==='Owner'?'owner':role==='Mod'?'mod':role==='Staff'?'staff':'user';
+    const init=(msg.senderUsername||msg.senderEmail||'?')[0].toUpperCase();
+    const isMe=msg.senderUid===ME.uid;
+    const myHandle=(ME.username||ME.email||'').toLowerCase();
+    const pinged=msg.text&&(msg.text.toLowerCase().includes('@'+myHandle)||msg.text.toLowerCase().includes('@everyone'));
+    const canDel=isMe||ME.role==='Owner'||ME.role==='Mod';
+    const delBtn=canDel&&!msg.system?`<button class="mab danger" onclick="deleteMsg('${mid}')">Delete</button>`:'';
+    const replyBtn=!msg.system?`<button class="mab" onclick="setReply('${mid}','${escAttr(msg.senderUsername||msg.senderEmail)}','${escAttr((msg.text||'').slice(0,80))}')">Reply</button>`:'';
+    let rq='';
+    if(msg.replyTo){rq=`<div class="reply-quote" onclick="scrollToMsg('${msg.replyTo.id}')"><span class="reply-quote-author">${esc(msg.replyTo.author)}</span>${esc(msg.replyTo.text)}</div>`;}
+    let txt=esc(msg.text||'');
+    txt=txt.replace(/@everyone/gi,`<span class="mention-everyone">@everyone</span>`);
+    txt=txt.replace(/@(\w+)/g,(m,h)=>`<span class="mention">${m}</span>`);
+    txt=txt.replace(/\n/g,'<br>');
+    if(msg.system){
+      html+=`<div class="msg-group" id="msg-${mid}"><div style="width:34px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;margin-top:2px">⚙</div><div class="msg-body"><div class="msg-text system-msg">${txt}</div></div><div class="msg-actions">${delBtn}</div></div>`;
+    }else{
+      const avHtml=msg.senderPfp?`<img src="${msg.senderPfp}">`:`<div class="msg-av-inner ${avCls(role)}">${init}</div>`;
+      html+=`<div class="msg-group${pinged?' pinged':''}" id="msg-${mid}">
+        <div class="msg-av-wrap ${avCls(role)}">${avHtml}</div>
+        <div class="msg-body">${rq}<div class="msg-meta"><span class="msg-author ${rc}">${esc(msg.senderUsername||msg.senderEmail||'?')}</span>${roleMsgTag(role)}<span class="msg-time">${ts}</span></div><div class="msg-text">${txt}</div></div>
+        <div class="msg-actions">${replyBtn}${delBtn}</div>
+      </div>`;
+    }
+  });
+  area.innerHTML=html;
+  if(atBottom)area.scrollTop=area.scrollHeight;
+}
+
+window.deleteMsg=async function(mid){
+  if(!confirm('Delete this message?'))return;
+  let col;
+  if(currentChan.type==='channel')     col=collection(db,'channels',currentChan.id,'messages');
+  else if(currentChan.type==='dm')     col=collection(db,'dms',currentChan.id,'messages');
+  else if(currentChan.type==='group')  col=collection(db,'groups',currentChan.id,'messages');
+  if(col)await deleteDoc(doc(col,mid));
+};
+
+window.setReply=function(id,author,text){replyTo={id,author,text};renderInput(currentChan?.type==='group');document.getElementById('msgInput')?.focus();};
+window.scrollToMsg=function(id){const el=document.getElementById('msg-'+id);if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.style.background='rgba(124,58,237,0.15)';setTimeout(()=>el.style.background='',1500);}};
+function clearMyPings(){if(ME.pingCount>0)updateDoc(doc(db,'users',ME.uid),{pingCount:0});}
+
+// ── MEMBERS ───────────────────────────────────────────────
+function memberRow(u){
+  if(!u)return'';
+  const r=u.role||'User';const uname=u.username||u.email||'?';
+  const avHtml=u.pfp?`<img src="${u.pfp}">`:`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:8px;font-family:var(--mono);font-weight:700">${uname[0].toUpperCase()}</div>`;
+  return`<div class="member-item"><div class="member-av ${avCls(r)}">${avHtml}</div><span class="member-name">${esc(uname)}</span><span class="online-dot"></span></div>`;
+}
+
+function updateMembers(){
+  const all=Object.values(allUsers);
+  const filtered=currentChan?.data?.restricted?all.filter(u=>['Owner','Mod','Staff'].includes(u.role)):all;
+  const ord=['Owner','Mod','Staff','User'];
+  filtered.sort((a,b)=>ord.indexOf(a.role)-ord.indexOf(b.role));
+  document.getElementById('memberCount').textContent=filtered.length;
+  document.getElementById('memberList').innerHTML=filtered.map(u=>memberRow(u)).join('');
+}
+
+// ── DMs ───────────────────────────────────────────────────
+async function loadDMList(){
+  const snap=await getDocs(collection(db,'dms'));
+  let html='';
+  snap.docs.forEach(d=>{
+    const dm=d.data();if(!dm.members||!dm.members.includes(ME.uid))return;
+    const oUid=dm.members.find(x=>x!==ME.uid);
+    const o=allUsers[oUid]||{email:'Unknown',role:'User',username:'Unknown'};
+    const uname=o.username||o.email||'?';
+    const avHtml=o.pfp?`<img src="${o.pfp}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:`${uname[0].toUpperCase()}`;
+    html+=`<div class="chan-item" id="ci-dm-${d.id}" onclick="openDM('${d.id}','${oUid}')"><div class="member-av ${avCls(o.role||'User')}" style="width:18px;height:18px;font-size:8px;flex-shrink:0">${avHtml}</div><span class="chan-name">${esc(uname)}</span></div>`;
+  });
+  document.getElementById('dmList').innerHTML=html||'<div style="padding:4px 12px;font-size:11px;color:var(--text-dim)">No DMs yet</div>';
+}
+
+window.openDMPicker=function(){
+  const others=Object.values(allUsers).filter(u=>u.uid!==ME.uid);
+  const items=others.map(u=>{
+    const uname=u.username||u.email||'?';
+    return`<div class="upi" onclick="startDM('${u.uid}')"><div class="member-av ${avCls(u.role||'User')}" style="width:28px;height:28px;font-size:10px">${u.pfp?`<img src="${u.pfp}">`:(uname[0]||'?').toUpperCase()}</div><div><div class="upi-name">${esc(uname)}</div><div class="upi-role">${u.role||'User'}</div></div></div>`;
+  }).join('')||'<div style="color:var(--text-dim);font-size:12px;padding:8px">No users found</div>';
+  openModal(`<div class="modal-title">New Direct Message</div><div class="user-pick-list">${items}</div><div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button></div>`);
+};
+
+window.startDM=async function(otherUid){
+  closeModal();
+  const snap=await getDocs(collection(db,'dms'));
+  let existing=null;
+  snap.docs.forEach(d=>{const dm=d.data();if(dm.members&&dm.members.includes(ME.uid)&&dm.members.includes(otherUid))existing=d.id;});
+  if(!existing){const r=await addDoc(collection(db,'dms'),{members:[ME.uid,otherUid],createdAt:Date.now()});existing=r.id;await loadDMList();}
+  openDM(existing,otherUid);
+};
+
+// ── GROUPS ────────────────────────────────────────────────
+async function loadGroupList(){
+  const snap=await getDocs(collection(db,'groups'));
+  let html='';
+  snap.docs.forEach(d=>{
+    const g=d.data();if(!g.members||!g.members.includes(ME.uid))return;
+    html+=`<div class="chan-item" id="ci-grp-${d.id}" onclick="openGroup('${d.id}')"><span class="chan-icon">👥</span><span class="chan-name">${esc(g.name||'Group')}</span><span style="font-family:var(--mono);font-size:9px;color:var(--text-dim)">${(g.members||[]).length}</span></div>`;
+  });
+  document.getElementById('groupList').innerHTML=html||'<div style="padding:4px 12px;font-size:11px;color:var(--text-dim)">No groups yet</div>';
+}
+
+window.openGroupCreator=function(){
+  _groupSelected=new Set();
+  const others=Object.values(allUsers).filter(u=>u.uid!==ME.uid);
+  const items=others.map(u=>{
+    const uname=u.username||u.email||'?';
+    return`<div class="upi" id="gpi-${u.uid}" onclick="toggleGMember('${u.uid}')"><div class="member-av ${avCls(u.role||'User')}" style="width:26px;height:26px;font-size:9px">${u.pfp?`<img src="${u.pfp}">`:(uname[0]||'?').toUpperCase()}</div><div><div class="upi-name">${esc(uname)}</div><div class="upi-role">${u.role||'User'}</div></div></div>`;
+  }).join('');
+  openModal(`<div class="modal-title">Create Group Chat</div>
+    <div class="form-group"><label class="form-label">Group Name</label><input class="form-input" id="gName" placeholder="Group name"></div>
+    <div class="form-label" style="margin-bottom:6px">Add Members (max 5)</div>
+    <div class="user-pick-list">${items}</div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:10px" id="gSelCount">0 / 5 selected</div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="createGroup()">Create</button></div>`);
+};
+
+window.toggleGMember=function(uid2){
+  const el=document.getElementById('gpi-'+uid2);
+  if(_groupSelected.has(uid2)){_groupSelected.delete(uid2);el?.classList.remove('selected');}
+  else{if(_groupSelected.size>=5){alert('Max 5 other members.');return;}_groupSelected.add(uid2);el?.classList.add('selected');}
+  document.getElementById('gSelCount').textContent=`${_groupSelected.size} / 5 selected`;
+};
+
+window.createGroup=async function(){
+  const name=document.getElementById('gName').value.trim()||'Group';
+  if(_groupSelected.size===0){alert('Select at least one member.');return;}
+  const members=[ME.uid,...Array.from(_groupSelected)];
+  const r=await addDoc(collection(db,'groups'),{name,members,createdAt:Date.now(),createdBy:ME.uid});
+  closeModal();await loadGroupList();openGroup(r.id);
+};
+
+// ── VOICE ─────────────────────────────────────────────────
+function watchVoicePresence(){
+  VOICE_ROOMS.forEach(vr=>{
+    onSnapshot(collection(db,'voiceRooms',vr.id,'participants'),snap=>{
+      const parts=snap.docs.map(d=>d.data());
+      const cnt=document.getElementById('vpc-'+vr.id);
+      const plist=document.getElementById('vp-'+vr.id);
+      const item=document.getElementById('vi-'+vr.id);
+      if(cnt)cnt.textContent=parts.length?`${parts.length}`:'';
+      if(plist)plist.innerHTML=parts.map(p=>`<div class="voice-part"><span>${esc(p.username||p.email||'?')}</span>${p.muted?'<span style="font-size:9px;color:var(--danger)">🔇</span>':''}</div>`).join('');
+      if(item)item.classList.toggle('in-room',parts.some(p=>p.uid===ME.uid));
+    });
+  });
+}
+
+window.joinVoice=async function(roomId,roomName){
+  if(currentVoiceRoom===roomId){await leaveVoice();return;}
+  if(currentVoiceRoom)await leaveVoice();
+  await setDoc(doc(db,'voiceRooms',roomId,'participants',ME.uid),{uid:ME.uid,email:ME.email,username:ME.username||ME.email,muted:false,joinedAt:Date.now()});
+  currentVoiceRoom=roomId;
+  document.getElementById('voiceSection').innerHTML=`
+    <div class="right-label">Voice — Active</div>
+    <div class="voice-active-box">
+      <div class="vab-header"><span class="vab-name">🔊 ${esc(roomName)}</span>
+        <div class="vab-btns">
+          <button class="vab-btn" id="muteBtn" onclick="toggleMute()">🎙 Live</button>
+          <button class="vab-btn leave-btn" onclick="leaveVoice()">Leave</button>
+        </div>
+      </div>
+    </div>`;
+  if(voiceMode==='agora')await joinAgora(roomId);
+  else await joinWebRTC(roomId);
+};
+
+async function joinAgora(roomId){
+  try{
+    // Fetch token from token server
+    const uidNum = Math.abs(ME.uid.split('').reduce((a,c)=>a+c.charCodeAt(0),0)) % 100000;
+    const res = await fetch(`https://nova-token-server.vercel.app/api/token?channel=${roomId}&uid=${uidNum}`);
+    const data = await res.json();
+    if(!data.token) throw new Error('No token returned');
+    agoraClient=AgoraRTC.createClient({mode:'rtc',codec:'vp8'});
+    await agoraClient.join(AGORA_APP_ID,roomId,data.token,uidNum);
+    agoraLocalTrack=await AgoraRTC.createMicrophoneAudioTrack();
+    await agoraClient.publish([agoraLocalTrack]);
+    agoraClient.on('user-published',async(u,mt)=>{await agoraClient.subscribe(u,mt);if(mt==='audio')u.audioTrack.play();});
+    console.log('[NOVA] Agora voice joined successfully:', roomId);
+  }catch(e){console.warn('[NOVA] Agora failed:',e.message);await joinWebRTC(roomId);}
+}
+
+async function joinWebRTC(roomId){
+  const snap=await getDocs(collection(db,'voiceRooms',roomId,'participants'));
+  if(snap.size>6){alert('Room full — WebRTC mode max 6 users.');await leaveVoice();return;}
+  try{
+    window._localStream=await navigator.mediaDevices.getUserMedia({audio:true});
+    console.log('[NOVA] WebRTC voice joined:',roomId);
+  }catch(e){alert('Mic access denied: '+e.message);await leaveVoice();}
+}
+
+window.toggleMute=async function(){
+  isMuted=!isMuted;
+  const btn=document.getElementById('muteBtn');
+  if(btn){btn.textContent=isMuted?'🔇 Muted':'🎙 Live';btn.classList.toggle('muted-state',isMuted);}
+  if(agoraLocalTrack)await agoraLocalTrack.setMuted(isMuted);
+  if(window._localStream)window._localStream.getAudioTracks().forEach(t=>t.enabled=!isMuted);
+  if(currentVoiceRoom)await updateDoc(doc(db,'voiceRooms',currentVoiceRoom,'participants',ME.uid),{muted:isMuted});
+};
+
+window.leaveVoice=async function(){
+  if(!currentVoiceRoom)return;
+  try{await deleteDoc(doc(db,'voiceRooms',currentVoiceRoom,'participants',ME.uid));}catch(_){}
+  if(agoraLocalTrack){agoraLocalTrack.close();agoraLocalTrack=null;}
+  if(agoraClient){try{await agoraClient.leave();}catch(_){}agoraClient=null;}
+  if(window._localStream){window._localStream.getTracks().forEach(t=>t.stop());window._localStream=null;}
+  currentVoiceRoom=null;isMuted=false;
+  document.getElementById('voiceSection').innerHTML=`<div class="right-label">Voice</div><div id="voiceRoomList"></div>`;
+  watchVoicePresence();
+};
+
+window.startDMCall=function(){
+  if(!currentChan||currentChan.type!=='dm')return;
+  const roomId='dmcall-'+[ME.uid,currentChan.data.otherUid].sort().join('-');
+  joinVoice(roomId,'DM Call');
+};
+
+window.startGroupCall=function(){
+  if(!currentChan||currentChan.type!=='group')return;
+  joinVoice('grpcall-'+currentChan.id,(currentChan.data.name||'Group')+' Call');
+};
+
+// ── PROFILE ───────────────────────────────────────────────
+window.openProfile=function(){
+  const r=ME.role;const uname=ME.username||ME.email||'?';
+  const avStyle=r==='Owner'?`background:var(--gold-dim);color:var(--gold);border:2px solid var(--gold-border)`:r==='Mod'?`background:rgba(88,166,255,0.18);color:var(--info);border:2px solid rgba(88,166,255,0.35)`:r==='Staff'?`background:rgba(63,185,80,0.18);color:var(--success);border:2px solid rgba(63,185,80,0.35)`:`background:var(--surface2);color:var(--text-muted);border:2px solid var(--border)`;
+  const pfpContent=ME.pfp?`<img src="${ME.pfp}" style="width:72px;height:72px;border-radius:50%;object-fit:cover">`:`<div class="pfp-inner" style="${avStyle}">${uname[0].toUpperCase()}</div>`;
+  const pings=ME.pingCount||0;
+  openModal(`<div class="modal-title">Your Profile</div>
+    <div style="text-align:center;margin-bottom:14px">
+      <div class="pfp-wrap" onclick="document.getElementById('pfpInput').click()">${pfpContent}<div class="pfp-overlay">📷</div></div>
+      <div style="font-size:10px;color:var(--text-dim);font-family:var(--mono);margin-top:4px">Click to change</div>
+    </div>
+    <div class="form-group"><label class="form-label">Username</label><input class="form-input" id="pUser" value="${esc(ME.username||'')}"></div>
+    <div class="form-group"><label class="form-label">Email</label><input class="form-input" value="${esc(ME.email||'')}" disabled style="opacity:0.5"></div>
+    <div class="form-group"><label class="form-label">Role</label><div style="padding:6px 0;font-size:14px">${r==='Owner'?'👑 Owner':r==='Mod'?'🛡 Mod':r==='Staff'?'⚡ Staff':'User'}</div></div>
+    <div class="form-group"><label class="form-label">Pings</label>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-family:var(--mono);font-size:20px;color:${pings>0?'var(--danger)':'var(--text-dim)'}">${pings}</span>
+        ${pings>0?`<button class="btn" style="padding:3px 10px;font-size:12px" onclick="clearMyPings();closeModal()">Clear</button>`:''}
+      </div>
+    </div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveProfile()">Save</button></div>`);
+};
+
+window.handlePfpUpload=async function(e){
+  const file=e.target.files[0];if(!file)return;
+  if(file.size>3*1024*1024){alert('Image must be under 3MB.');return;}
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    const url=ev.target.result;
+    ME.pfp=url;
+    try{await updateDoc(doc(db,'users',ME.uid),{pfp:url});}catch(_){}
+    setupTopbar();closeModal();openProfile();
+  };
+  reader.readAsDataURL(file);
+};
+
+window.saveProfile=async function(){
+  const nu=document.getElementById('pUser').value.trim();
+  if(!nu){alert('Username cannot be empty.');return;}
+  ME.username=nu;
+  await updateDoc(doc(db,'users',ME.uid),{username:nu});
+  setupTopbar();closeModal();
+};
+
+// ── MODAL ─────────────────────────────────────────────────
+function openModal(html){
+  document.getElementById('modalContainer').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal">${html}</div></div>`;
+}
+function closeModal(){document.getElementById('modalContainer').innerHTML='';}
+window.closeModal=closeModal;
+
+// ── UTILS ─────────────────────────────────────────────────
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escAttr(s){return String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;');}
+</script>
+</body>
+</html>
