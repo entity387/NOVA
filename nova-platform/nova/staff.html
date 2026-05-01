@@ -123,6 +123,7 @@ async function tickets() {
     if (!items.length) return '';
     const rows = items.map(t => {
       const ep = {none:'pill-none',staff_to_mod:'pill-s2m',mod_to_owner:'pill-m2o'}[t.escalationLevel]||'pill-none';
+      const pp = t.priority==='high'?'<span style="font-family:var(--mono);font-size:9px;background:rgba(248,81,73,0.15);color:var(--danger);padding:1px 6px;border-radius:2px;margin-left:5px">HIGH</span>':t.priority==='medium'?'<span style="font-family:var(--mono);font-size:9px;background:rgba(210,153,34,0.15);color:var(--warn);padding:1px 6px;border-radius:2px;margin-left:5px">MED</span>':'';
       const isAssignedToMe = t.assignedTo === email;
       const isUnassigned   = !t.assignedTo;
       return `<tr>

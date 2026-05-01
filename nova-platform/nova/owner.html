@@ -206,8 +206,9 @@ async function tickets() {
     const t=d.data(); const id=d.id;
     const sp = {open:'pill-open',in_progress:'pill-progress',closed:'pill-closed'}[t.status]||'pill-none';
     const ep = {none:'pill-none',staff_to_mod:'pill-s2m',mod_to_owner:'pill-m2o'}[t.escalationLevel]||'pill-none';
+    const pp = t.priority==='high'?'<span style="font-family:var(--mono);font-size:9px;background:rgba(248,81,73,0.15);color:var(--danger);padding:1px 6px;border-radius:2px;margin-left:5px">HIGH</span>':t.priority==='medium'?'<span style="font-family:var(--mono);font-size:9px;background:rgba(210,153,34,0.15);color:var(--warn);padding:1px 6px;border-radius:2px;margin-left:5px">MED</span>':'';
     return `<tr>
-      <td><span style="cursor:pointer;color:var(--text);font-weight:600" onclick="openTicket('${id}')">${t.subject||'—'}</span></td>
+      <td><span style="cursor:pointer;color:var(--text);font-weight:600" onclick="openTicket('${id}')">${t.subject||'—'}</span>${pp}</td>
       <td class="mono" style="font-size:11px">${t.createdBy||'—'}</td>
       <td><span class="pill ${sp}">${t.status||'—'}</span></td>
       <td class="mono" style="font-size:11px">${t.assignedTo||'—'}</td>
