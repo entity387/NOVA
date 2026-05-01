@@ -335,6 +335,8 @@ onAuthStateChanged(auth, async user => {
   await buildLeft();
   watchSettings();
   watchMyProfile();
+  // Init debug HUD with current settings
+  if (settSnap && settSnap.exists()) updateDebugHud(settSnap.data().debug);
 });
 
 // Give Firebase up to 3 seconds to resolve auth before kicking to login
@@ -418,23 +420,14 @@ function watchSettings() {
     const lockout = document.getElementById('_lockoutOverlay');
     if (lockout) lockout.remove();
 
+    // ── Update debug HUD visibility ──────────────────────
+    updateDebugHud(s.debug);
+
     if (!_lastSettings){_lastSettings=s;return;}
 
     const changes=[];
-    if(s.maintenance!==_lastSettings.maintenance) changes.push(s.maintenance?'🔧 Maintenance mode ENABLED':'✅ Maintenance mode DISABLED');
-    if(s.emergency!==_lastSettings.emergency)     changes.push(s.emergency?'🚨 Emergency shutdown ACTIVATED':'✅ Emergency shutdown DEACTIVATED');
-    if(s.debug!==_lastSettings.debug)             changes.push(s.debug?'⚡ Debug mode ENABLED':'⚡ Debug mode DISABLED');
     _lastSettings=s;
-
-    for(const msg of changes){
-      await addDoc(collection(db,'channels','updates','messages'),{
-        text:msg,senderUid:'system',senderEmail:'NOVA System',
-        senderUsername:'NOVA System',senderRole:'System',
-        timestamp:Date.now(),system:true
-      });
-      const usersSnap=await getDocs(collection(db,'users'));
-      for(const d of usersSnap.docs) await updateDoc(doc(db,'users',d.id),{pingCount:increment(1)});
-    }
+    // Auto-posts to #updates removed — use the updates channel manually for releases/bug fixes
   });
 }
 
@@ -1255,9 +1248,60 @@ function openModal(html){
 function closeModal(){document.getElementById('modalContainer').innerHTML='';}
 window.closeModal=closeModal;
 
+
+// ── DEBUG HUD ─────────────────────────────────────────────
+let _simRole = null;
+
+function updateDebugHud(debugOn) {
+  const hud = document.getElementById('debugHud');
+  if (!hud) return;
+  const canDebug = ME && (ME.role === 'Owner' || ME.role === 'Mod');
+  hud.style.display = (debugOn && canDebug) ? 'block' : 'none';
+  if (ME) {
+    document.getElementById('hudRealRole').textContent = ME.role || '—';
+    document.getElementById('hudEmail').textContent    = ME.email || '—';
+    document.getElementById('hudSimRole').textContent  = _simRole || '—';
+  }
+}
+
+window.applySimRole = function(roleVal) {
+  _simRole = roleVal || null;
+  const el = document.getElementById('hudSimRole');
+  if (el) el.textContent = _simRole || '—';
+  if (!_simRole) {
+    // Restore real role
+    setupTopbar();
+    buildLeft();
+    return;
+  }
+  // Temporarily override ME.role for UI only - no Firestore change
+  const realRole = ME.role;
+  ME.role = _simRole;
+  setupTopbar();
+  buildLeft().then(() => { ME.role = realRole; });
+};
+
 // ── UTILS ─────────────────────────────────────────────────
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function escAttr(s){return String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;');}
 </script>
+
+<!-- DEBUG HUD — only shown when debug mode is on + Owner/Mod -->
+<div id="debugHud" style="display:none;position:fixed;bottom:20px;right:20px;background:#0d1117;border:1px solid rgba(248,81,73,0.3);border-radius:6px;padding:14px 18px;z-index:900;min-width:230px;box-shadow:0 0 20px rgba(248,81,73,0.1);">
+  <div style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px;color:#f85149;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(248,81,73,0.2)">▸ Debug HUD</div>
+  <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-family:'Share Tech Mono',monospace;font-size:11px"><span style="color:#484f58">REAL ROLE</span><span id="hudRealRole" style="color:#7d8590">—</span></div>
+  <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-family:'Share Tech Mono',monospace;font-size:11px"><span style="color:#484f58">SIM ROLE</span><span id="hudSimRole" style="color:#7d8590">—</span></div>
+  <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-family:'Share Tech Mono',monospace;font-size:11px"><span style="color:#484f58">DEBUG</span><span style="color:#f85149">on</span></div>
+  <div style="display:flex;justify-content:space-between;margin-bottom:10px;font-family:'Share Tech Mono',monospace;font-size:11px"><span style="color:#484f58">USER</span><span id="hudEmail" style="color:#7d8590;max-width:140px;overflow:hidden;text-overflow:ellipsis">—</span></div>
+  <div style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:#484f58;text-transform:uppercase;margin-bottom:6px">Simulate Role</div>
+  <select id="roleSimSelect" onchange="applySimRole(this.value)" style="width:100%;background:#161b22;border:1px solid #21262d;border-radius:4px;color:#e6edf3;font-family:'Share Tech Mono',monospace;font-size:12px;padding:6px 10px;outline:none">
+    <option value="">None (real role)</option>
+    <option value="Owner">👑 Owner</option>
+    <option value="Mod">🛡 Mod</option>
+    <option value="Staff">⚡ Staff</option>
+    <option value="User">User</option>
+  </select>
+  <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:#484f58;margin-top:8px;letter-spacing:1px">Sim does not affect Firestore</div>
+</div>
 </body>
 </html>
