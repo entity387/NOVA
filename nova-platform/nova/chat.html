@@ -551,7 +551,7 @@ async function buildLeft() {
   });
   html+=`</div><div class="left-section"><div class="left-label">Voice</div>`;
   VOICE_ROOMS.forEach(vr=>{
-    if(vr.restricted&&!canRestricted)return;
+    if(vr.restricted&&!['Owner','Mod','Staff'].includes(ME.role))return;
     html+=`<div class="voice-item" id="vi-${vr.id}" onclick="joinVoice('${vr.id}','${vr.name}')">
       <div class="voice-item-row"><span class="voice-item-icon">🔊</span><span class="voice-item-name">${vr.name}</span><span style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-left:auto" id="vpc-${vr.id}"></span></div>
       <div class="voice-part-list" id="vp-${vr.id}"></div>
