@@ -528,7 +528,7 @@ window.warnUser = function(uid2, uname) {
     + '<textarea class="form-textarea" id="warnReason" placeholder="What is this warning for?" style="min-height:80px"></textarea></div>'
     + '<div class="modal-actions">'
     + '<button class="btn" onclick="closeModal()">Cancel</button>'
-    + '<button class="btn btn-warn" onclick="confirmWarn('' + uid2 + '','' + uname + '')">Issue Warning</button>'
+    + '<button class="btn btn-warn" onclick="confirmWarn(\'' + uid2 + '\',\'' + uname + '\')">Issue Warning</button>'
     + '</div>';
   openModal(html);
 };
