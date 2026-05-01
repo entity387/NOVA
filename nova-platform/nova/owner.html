@@ -508,13 +508,27 @@ window.manageUser = async function(uid2) {
     </div>`, true);
 };
 
-window.warnUser = async function(uid2, uname) {
-  const reason = document.getElementById('mPunishReason')?.value||'';
+window.warnUser = function(uid2, uname) {
+  openModal(`
+    <div class="modal-title">⚠️ Warn: ${uname}</div>
+    <div class="form-group">
+      <label class="form-label">Reason <span style="color:var(--text-dim)">(optional)</span></label>
+      <textarea class="form-textarea" id="warnReason" placeholder="What is this warning for?" style="min-height:80px"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-warn" onclick="confirmWarn('${uid2}','${uname}')">Issue Warning</button>
+    </div>`);
+};
+
+window.confirmWarn = async function(uid2, uname) {
+  const reason = document.getElementById('warnReason')?.value.trim()||'';
   const snap = await getDoc(doc(db,'users',uid2));
   const cnt = (snap.data().warningsCount||0)+1;
   await updateDoc(doc(db,'users',uid2), {
     warningsCount: cnt,
-    punishmentHistory: arrayUnion({ type:'Warn', reason, at:Date.now() })
+    punishmentHistory: arrayUnion({ type:'Warn', reason, at:Date.now() }),
+    pendingNotifications: arrayUnion({ type:'Warn', reason, issuedBy:email, at:Date.now() })
   });
   await writeLog(`Warned ${uname} (total: ${cnt})`);
   closeModal(); users();
@@ -543,7 +557,8 @@ window.permBan = async function(uid2, uname) {
   const reason = document.getElementById('mPunishReason')?.value||'';
   await updateDoc(doc(db,'users',uid2), {
     banned:true,
-    punishmentHistory: arrayUnion({ type:'Perm Ban', reason, at:Date.now() })
+    punishmentHistory: arrayUnion({ type:'Perm Ban', reason, at:Date.now() }),
+    pendingNotifications: arrayUnion({ type:'Perm Ban', reason, issuedBy:email, at:Date.now() })
   });
   await writeLog(`Permanently banned ${uname}`);
   closeModal(); users();
@@ -563,8 +578,10 @@ window.saveUser = async function(uid2, uname) {
   const updates  = { role: newRole };
   const history  = [];
   if (muteDur) {
-    updates.mutedUntil = new Date(Date.now()+parseInt(muteDur));
+    const muteUntil = Date.now()+parseInt(muteDur);
+    updates.mutedUntil = new Date(muteUntil);
     history.push({ type:'Mute', reason, at:Date.now() });
+    updates.pendingNotifications = arrayUnion({ type:'Mute', reason, until:muteUntil, issuedBy:email, at:Date.now() });
   }
   if (tempDur) {
     updates.tempBannedUntil = new Date(Date.now()+parseInt(tempDur));

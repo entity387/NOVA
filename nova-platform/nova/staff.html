@@ -361,7 +361,8 @@ window.confirmWarn = async function(uid2, uname) {
   const cnt  = (snap.data().warningsCount||0) + 1;
   await updateDoc(doc(db,'users',uid2), {
     warningsCount:cnt,
-    punishmentHistory: arrayUnion({ type:'Warn', reason, at:Date.now() })
+    punishmentHistory: arrayUnion({ type:'Warn', reason, at:Date.now() }),
+    pendingNotifications: arrayUnion({ type:'Warn', reason, issuedBy:email, at:Date.now() })
   });
   closeModal(); users();
 };
@@ -388,11 +389,13 @@ window.muteUser = function(uid2, uname) {
 };
 
 window.confirmMute = async function(uid2, uname) {
-  const dur    = parseInt(document.getElementById('mMuteDur').value);
-  const reason = document.getElementById('mReason')?.value.trim()||'';
+  const dur      = parseInt(document.getElementById('mMuteDur').value);
+  const reason   = document.getElementById('mReason')?.value.trim()||'';
+  const muteUntil = Date.now()+dur;
   await updateDoc(doc(db,'users',uid2), {
-    mutedUntil: new Date(Date.now()+dur),
-    punishmentHistory: arrayUnion({ type:'Mute', reason, at:Date.now() })
+    mutedUntil: new Date(muteUntil),
+    punishmentHistory: arrayUnion({ type:'Mute', reason, at:Date.now() }),
+    pendingNotifications: arrayUnion({ type:'Mute', reason, until:muteUntil, issuedBy:email, at:Date.now() })
   });
   closeModal(); users();
 };
