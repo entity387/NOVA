@@ -588,7 +588,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);display:flex;f
   </div>
   <div class="topbar-right">
     <span id="voiceModeTag" style="display:none"></span>
-    <button class="theme-btn" id="themeBtn" onclick="toggleThemePicker()">🎨 Theme</button>
+    <button class="theme-btn" id="themeBtn" onclick="toggleThemePicker(event)">🎨 Theme</button>
     <div class="theme-picker" id="themePicker">
       <div class="theme-option" data-theme="midnight" onclick="setTheme('midnight')"><div class="theme-swatch" style="background:linear-gradient(135deg,#7c3aed,#a855f7)"></div>Midnight</div>
       <div class="theme-option" data-theme="neon" onclick="setTheme('neon')"><div class="theme-swatch" style="background:linear-gradient(135deg,#00f5d4,#7b2ff7)"></div>Neon</div>
@@ -721,7 +721,8 @@ function setTheme(theme) {
   localStorage.setItem('nova-theme', theme);
 }
 
-window.toggleThemePicker = function() {
+window.toggleThemePicker = function(e) {
+  e.stopPropagation();
   document.getElementById('themePicker').classList.toggle('open');
 };
 
