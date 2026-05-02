@@ -1256,6 +1256,7 @@ window.createGroup=async function(){
 };
 
 // ── MY TICKETS ────────────────────────────────────────────
+window._loadMyTickets = loadMyTickets;
 async function loadMyTickets() {
   ticketUnsubscribers.forEach(u=>u()); ticketUnsubscribers=[];
   const container=document.getElementById('ticketList');
@@ -1331,7 +1332,15 @@ window.openTicketChat=async function(ticketId){
   document.getElementById('memberList').innerHTML=memberRow(ME)+(assignedUser?memberRow(assignedUser):'');
   showSkeletonLoader();
   const q=query(collection(db,'tickets',ticketId,'chat'),orderBy('timestamp','asc'),limit(100));
-  msgUnsub=onSnapshot(q,snap=>renderMsgs(snap.docs));
+  msgUnsub=onSnapshot(q,snap=>renderMsgs(snap.docs),err=>{
+    console.warn('[NOVA] ticket chat error:',err.message);
+    // Fallback without orderBy if index missing
+    const q2=query(collection(db,'tickets',ticketId,'chat'),limit(100));
+    msgUnsub=onSnapshot(q2,snap=>{
+      const sorted=[...snap.docs].sort((a,b)=>(a.data().timestamp||0)-(b.data().timestamp||0));
+      renderMsgs(sorted);
+    });
+  });
 };
 
 async function sendTicketUserMsg2(ticketId,text){
@@ -1377,7 +1386,7 @@ window.submitTicket=async function(){
       <div style="font-size:44px;margin-bottom:16px">✅</div>
       <div class="modal-title" style="text-align:center">Ticket Submitted</div>
       <div style="font-size:14px;color:var(--text-muted);line-height:1.6">Your ticket has been received. A staff member will get back to you soon.</div>
-      <div class="modal-actions" style="justify-content:center"><button class="btn btn-primary" onclick="closeModal();loadMyTickets()">Done</button></div>
+      <div class="modal-actions" style="justify-content:center"><button class="btn btn-primary" onclick="closeModal();window._loadMyTickets&&window._loadMyTickets()">Done</button></div>
     </div>`);
   }catch(e){alert('Failed: '+e.message);if(btn){btn.disabled=false;btn.textContent='Submit Ticket';}}
 };
