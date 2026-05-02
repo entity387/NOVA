@@ -590,12 +590,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);display:flex;f
     <span id="voiceModeTag" style="display:none"></span>
     <button class="theme-btn" id="themeBtn" onclick="toggleThemePicker(event)">🎨 Theme</button>
     <div class="theme-picker" id="themePicker">
-      <div class="theme-option" data-theme="midnight" onclick="setTheme('midnight')"><div class="theme-swatch" style="background:linear-gradient(135deg,#7c3aed,#a855f7)"></div>Midnight</div>
-      <div class="theme-option" data-theme="neon" onclick="setTheme('neon')"><div class="theme-swatch" style="background:linear-gradient(135deg,#00f5d4,#7b2ff7)"></div>Neon</div>
-      <div class="theme-option" data-theme="ocean" onclick="setTheme('ocean')"><div class="theme-swatch" style="background:linear-gradient(135deg,#0ea5e9,#075985)"></div>Ocean</div>
-      <div class="theme-option" data-theme="forest" onclick="setTheme('forest')"><div class="theme-swatch" style="background:linear-gradient(135deg,#22c55e,#d97706)"></div>Forest</div>
-      <div class="theme-option" data-theme="sunset" onclick="setTheme('sunset')"><div class="theme-swatch" style="background:linear-gradient(135deg,#f97316,#8b5cf6)"></div>Sunset</div>
-      <div class="theme-option" data-theme="light" onclick="setTheme('light')"><div class="theme-swatch" style="background:linear-gradient(135deg,#6d28d9,#8b5cf6);border:1px solid #e2e8f0"></div>Light</div>
+      <div class="theme-option" data-theme="midnight"><div class="theme-swatch" style="background:linear-gradient(135deg,#7c3aed,#a855f7)"></div>Midnight</div>
+      <div class="theme-option" data-theme="neon"><div class="theme-swatch" style="background:linear-gradient(135deg,#00f5d4,#7b2ff7)"></div>Neon</div>
+      <div class="theme-option" data-theme="ocean"><div class="theme-swatch" style="background:linear-gradient(135deg,#0ea5e9,#075985)"></div>Ocean</div>
+      <div class="theme-option" data-theme="forest"><div class="theme-swatch" style="background:linear-gradient(135deg,#22c55e,#d97706)"></div>Forest</div>
+      <div class="theme-option" data-theme="sunset"><div class="theme-swatch" style="background:linear-gradient(135deg,#f97316,#8b5cf6)"></div>Sunset</div>
+      <div class="theme-option" data-theme="light"><div class="theme-swatch" style="background:linear-gradient(135deg,#6d28d9,#8b5cf6);border:1px solid #e2e8f0"></div>Light</div>
     </div>
     <div class="user-info" onclick="openProfile()">
       <div class="avatar av-user" id="topAv">
@@ -726,8 +726,13 @@ window.toggleThemePicker = function(e) {
   document.getElementById('themePicker').classList.toggle('open');
 };
 
-// Close theme picker on outside click
+// Theme option clicks + close on outside click
 document.addEventListener('click', e => {
+  const option = e.target.closest('.theme-option');
+  if (option && option.dataset.theme) {
+    setTheme(option.dataset.theme);
+    return;
+  }
   if (!e.target.closest('#themeBtn') && !e.target.closest('#themePicker')) {
     document.getElementById('themePicker').classList.remove('open');
   }
