@@ -1259,8 +1259,8 @@ window.createGroup=async function(){
 async function loadMyTickets() {
   ticketUnsubscribers.forEach(u=>u()); ticketUnsubscribers=[];
   const container=document.getElementById('ticketList');
+  if(!container)return;
   let allDocs=[];
-  // Run two separate queries to avoid needing a composite index
   try {
     const q1=await getDocs(query(collection(db,'tickets'),where('createdByUid','==',ME.uid)));
     const q2=await getDocs(query(collection(db,'tickets'),where('assignedTo','==',ME.email)));
@@ -1268,11 +1268,10 @@ async function loadMyTickets() {
     [...q1.docs,...q2.docs].forEach(d=>{ if(!seen.has(d.id)){seen.add(d.id);allDocs.push(d);} });
   } catch(e) {
     console.warn('[NOVA] loadMyTickets error:',e.message);
-    if(container)container.innerHTML='<div style="padding:4px 12px;font-size:11px;color:var(--text-dim)">—</div>';
+    container.innerHTML='<div style="padding:4px 12px;font-size:11px;color:var(--text-dim)">—</div>';
     return;
   }
   const myTickets=allDocs;
-  const container=document.getElementById('ticketList');if(!container)return;
   const visible=myTickets.filter(d=>d.data().status!=='closed');
   if(!visible.length){container.innerHTML='<div style="padding:4px 12px;font-size:11px;color:var(--text-dim)">No open tickets</div>';return;}
   let html='';
