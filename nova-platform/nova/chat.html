@@ -666,7 +666,7 @@ import { initializeApp }          from "https://www.gstatic.com/firebasejs/10.12
 import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc,
-  deleteDoc, query, orderBy, limit, onSnapshot, setDoc, arrayUnion, increment
+  deleteDoc, query, where, orderBy, limit, onSnapshot, setDoc, arrayUnion, increment
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -1258,10 +1258,20 @@ window.createGroup=async function(){
 // ── MY TICKETS ────────────────────────────────────────────
 async function loadMyTickets() {
   ticketUnsubscribers.forEach(u=>u()); ticketUnsubscribers=[];
-  let snap;
-  try { snap=await getDocs(collection(db,'tickets')); }
-  catch(e){ const c=document.getElementById('ticketList');if(c)c.innerHTML='<div style="padding:4px 12px;font-size:11px;color:var(--text-dim)">—</div>';return; }
-  const myTickets=snap.docs.filter(d=>{const t=d.data();return t.createdByUid===ME.uid||t.createdBy===ME.email||t.assignedTo===ME.email;});
+  const container=document.getElementById('ticketList');
+  let allDocs=[];
+  // Run two separate queries to avoid needing a composite index
+  try {
+    const q1=await getDocs(query(collection(db,'tickets'),where('createdByUid','==',ME.uid)));
+    const q2=await getDocs(query(collection(db,'tickets'),where('assignedTo','==',ME.email)));
+    const seen=new Set();
+    [...q1.docs,...q2.docs].forEach(d=>{ if(!seen.has(d.id)){seen.add(d.id);allDocs.push(d);} });
+  } catch(e) {
+    console.warn('[NOVA] loadMyTickets error:',e.message);
+    if(container)container.innerHTML='<div style="padding:4px 12px;font-size:11px;color:var(--text-dim)">—</div>';
+    return;
+  }
+  const myTickets=allDocs;
   const container=document.getElementById('ticketList');if(!container)return;
   const visible=myTickets.filter(d=>d.data().status!=='closed');
   if(!visible.length){container.innerHTML='<div style="padding:4px 12px;font-size:11px;color:var(--text-dim)">No open tickets</div>';return;}
