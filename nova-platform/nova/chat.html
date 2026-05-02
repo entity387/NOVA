@@ -708,7 +708,7 @@ let _simRole = null;
 let ticketUnsubscribers = [];
 
 // ── THEME SYSTEM ──────────────────────────────────────────
-function setTheme(theme) {
+window.setTheme = function setTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   document.querySelectorAll('.theme-option').forEach(el => {
     el.classList.toggle('active', el.dataset.theme === theme);
