@@ -103,7 +103,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);display:flex;f
   border-bottom:1px solid var(--border);
   display:flex;align-items:center;justify-content:space-between;
   padding:0 18px;flex-shrink:0;z-index:50;
-  position:relative;overflow:hidden;
+  position:relative;
   transition:background 0.5s;
 }
 .topbar::after{
@@ -127,7 +127,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);display:flex;f
 .theme-btn:hover{border-color:var(--accent);color:var(--accent2);}
 
 .theme-picker{
-  position:absolute;top:58px;right:80px;
+  position:absolute;top:44px;right:0;
   background:var(--glass2);backdrop-filter:var(--blur);
   border:1px solid var(--border);border-radius:var(--radius);
   padding:8px;z-index:200;display:none;
@@ -586,7 +586,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);display:flex;f
     <span class="logo">NOVA</span>
     <span style="font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--text-dim)">chat</span>
   </div>
-  <div class="topbar-right">
+  <div class="topbar-right" style="position:relative">
     <span id="voiceModeTag" style="display:none"></span>
     <button class="theme-btn" id="themeBtn" onclick="toggleThemePicker(event)">🎨 Theme</button>
     <div class="theme-picker" id="themePicker">
