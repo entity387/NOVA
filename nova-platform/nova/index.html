@@ -548,6 +548,19 @@ input::placeholder { color: rgba(72,79,88,0.8); }
     <div class="logo-line"></div>
   </div>
 
+  <!-- OG Counter -->
+  <div id="ogCounter" style="text-align:center;margin-bottom:16px;animation:fadeUp 0.6s ease 0.4s both;">
+    <div style="display:inline-flex;align-items:center;gap:10px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.25);border-radius:20px;padding:8px 18px;">
+      <span style="font-size:16px">🌟</span>
+      <div>
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;color:rgba(255,215,0,0.6);text-transform:uppercase;margin-bottom:2px">OG Early Access</div>
+        <div id="ogSpotsText" style="font-family:var(--mono);font-size:13px;color:#ffd700;font-weight:700">Loading...</div>
+      </div>
+      <span style="font-size:16px">🌟</span>
+    </div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-top:6px;letter-spacing:1px">First 20 users get a permanent OG badge</div>
+  </div>
+
   <div class="card">
     <div class="field-group">
       <label>Email Address</label>
@@ -749,6 +762,29 @@ document.head.appendChild(style);
 // ── BOOTSTRAP OWNER ───────────────────────────────────────
 // Bootstrap removed — owner account already set up
 
+// ── OG COUNTER ────────────────────────────────────────────
+async function loadOGCounter() {
+  try {
+    const snap = await getDoc(doc(db,'meta','signupCounter'));
+    const count = snap.exists() ? (snap.data().count || 0) : 0;
+    const remaining = Math.max(0, 20 - count);
+    const el = document.getElementById('ogSpotsText');
+    if (!el) return;
+    if (remaining <= 0) {
+      el.textContent = 'All OG spots claimed!';
+      el.style.color = 'var(--text-dim)';
+      document.getElementById('ogCounter').style.opacity = '0.5';
+    } else {
+      el.textContent = remaining + ' of 20 spots remaining';
+      el.style.color = '#ffd700';
+    }
+  } catch(e) {
+    const el = document.getElementById('ogSpotsText');
+    if (el) el.textContent = '20 spots available';
+  }
+}
+loadOGCounter();
+
 // ── HELPERS ───────────────────────────────────────────────
 function setStatus(msg) {
   document.getElementById('statusBar').textContent = msg;
@@ -888,16 +924,33 @@ window.doRegister = async function() {
   btn.disabled = true; btn.textContent = 'Creating...';
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, pass);
+
+    // Check OG status — first 20 signups get the OG badge
+    const counterRef = doc(db,'meta','signupCounter');
+    const counterSnap = await getDoc(counterRef);
+    const currentCount = counterSnap.exists() ? (counterSnap.data().count || 0) : 0;
+    const isOG = currentCount < 20;
+
+    // Increment counter
+    await setDoc(counterRef, { count: currentCount + 1 }, { merge: true });
+
     await setDoc(doc(db,'users',cred.user.uid), {
       email, role:'User', username,
       warningsCount:0, banned:false, tempBannedUntil:null,
-      mutedUntil:null, pfp:'', pingCount:0, punishmentHistory:[], theme:'midnight'
+      mutedUntil:null, pfp:'', pingCount:0, punishmentHistory:[], theme:'midnight',
+      og: isOG, signupNumber: currentCount + 1,
     });
     await auth.signOut();
     closeRegister();
     document.getElementById('emailInput').value = email;
     document.getElementById('passInput').value  = pass;
-    showSuccess('✓ Account created! Click Login to continue.');
+    if (isOG) {
+      showSuccess('✓ Account created! You are OG user #' + (currentCount + 1) + ' 🌟 Click Login to continue.');
+    } else {
+      showSuccess('✓ Account created! Click Login to continue.');
+    }
+    // Refresh counter display
+    loadOGCounter();
   } catch(e) {
     const msgs = {
       'auth/email-already-in-use': 'An account with that email already exists.',

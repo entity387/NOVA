@@ -651,6 +651,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);display:flex;f
   .mobile-menu-btn { display: none !important; }
   .sidebar-overlay { display: none !important; }
 }
+.og-badge{
+  display:inline-flex;align-items:center;gap:2px;
+  font-family:var(--mono);font-size:8px;letter-spacing:1px;
+  padding:1px 6px;border-radius:20px;text-transform:uppercase;
+  background:rgba(255,215,0,0.12);color:#ffd700;
+  border:1px solid rgba(255,215,0,0.3);
+  vertical-align:middle;margin-left:2px;
+}
 </style>
 </head>
 <body>
@@ -856,6 +864,7 @@ onAuthStateChanged(auth, async user => {
   if (!snap.exists()) { window.location.href='index.html'; return; }
   ME = { uid:user.uid, ...snap.data() };
   if (!ME.username) ME.username = ME.email.split('@')[0];
+  ME.og = snap.data().og || false;
 
   // Apply saved theme
   if (ME.theme) setTheme(ME.theme);
@@ -1162,6 +1171,7 @@ window.sendMsg = async function(){
     text,senderUid:ME.uid,senderEmail:ME.email,
     senderUsername:ME.username||ME.email,
     senderRole:ME.role,senderPfp:ME.pfp||'',
+    og:ME.og||false,
     timestamp:Date.now(),system:false,
     replyTo:replyTo?{id:replyTo.id,author:replyTo.author,text:replyTo.text.slice(0,80)}:null,
   };
@@ -1231,7 +1241,7 @@ function renderMsgs(docs){
         <div class="msg-av-wrap ${avCls(role)}">${avHtml}</div>
         <div class="msg-body">
           ${rq}
-          ${!isStacked?`<div class="msg-meta"><span class="msg-author ${rc}">${esc(msg.senderUsername||msg.senderEmail||'?')}</span>${roleMsgTag(role)}<span class="msg-time">${ts}</span></div>`:`<span class="msg-time" style="font-size:9px;color:var(--text-dim);position:absolute;left:-28px;top:3px;opacity:0;transition:opacity 0.2s" class="hover-time">${ts}</span>`}
+          ${!isStacked?`<div class="msg-meta"><span class="msg-author ${rc}">${esc(msg.senderUsername||msg.senderEmail||'?')}</span>${roleMsgTag(role)}${msg.og?'<span class="og-badge">🌟 OG</span>':''}<span class="msg-time">${ts}</span></div>`:`<span class="msg-time" style="font-size:9px;color:var(--text-dim);position:absolute;left:-28px;top:3px;opacity:0;transition:opacity 0.2s" class="hover-time">${ts}</span>`}
           <div class="msg-text">${txt}</div>
         </div>
         <div class="msg-actions">${replyBtn}${delBtn}</div>
