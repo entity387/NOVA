@@ -993,6 +993,11 @@ function showModerationNotification(n) {
 async function loadAllUsers() {
   const snap = await getDocs(collection(db,'users'));
   snap.docs.forEach(d => { allUsers[d.id] = { uid:d.id, ...d.data() }; });
+  // Watch for real-time user updates (mutes, bans etc)
+  onSnapshot(collection(db,'users'), snap => {
+    snap.docs.forEach(d => { allUsers[d.id] = { uid:d.id, ...d.data() }; });
+    if (currentChan) updateMembers();
+  });
 }
 
 // ── BUILD LEFT PANEL ──────────────────────────────────────
@@ -1268,14 +1273,42 @@ function clearMyPings(){if(ME.pingCount>0)updateDoc(doc(db,'users',ME.uid),{ping
 // ── MEMBERS ───────────────────────────────────────────────
 function memberRow(u){
   if(!u)return'';
+  // Hide perm banned users entirely
+  if(u.banned)return'';
   const r=u.role||'User';const uname=u.username||u.email||'?';
+  const now=Date.now();
+
+  // Check mute status
+  const mutedUntil=u.mutedUntil?(u.mutedUntil.seconds?u.mutedUntil.seconds*1000:new Date(u.mutedUntil).getTime()):0;
+  const isMuted=mutedUntil>now;
+
+  // Check temp ban status
+  const tempUntil=u.tempBannedUntil?(u.tempBannedUntil.seconds?u.tempBannedUntil.seconds*1000:new Date(u.tempBannedUntil).getTime()):0;
+  const isTempBanned=tempUntil>now;
+
   const avHtml=u.pfp?`<img src="${u.pfp}">`:`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:8px;font-family:var(--mono);font-weight:700">${uname[0].toUpperCase()}</div>`;
-  return`<div class="member-item"><div class="member-av ${avCls(r)}">${avHtml}</div><span class="member-name">${esc(uname)}</span><span class="online-dot"></span></div>`;
+
+  // Status indicator
+  let statusBadge='';
+  let nameStyle='';
+  if(isTempBanned){
+    statusBadge=`<span style="font-family:var(--mono);font-size:8px;color:var(--danger);background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.25);padding:1px 5px;border-radius:8px;flex-shrink:0;margin-left:auto">BANNED</span>`;
+    nameStyle='opacity:0.5;';
+  } else if(isMuted){
+    statusBadge=`<span style="font-size:11px;flex-shrink:0;margin-left:auto" title="Muted">🔇</span>`;
+    nameStyle='opacity:0.6;';
+  } else {
+    statusBadge=`<span class="online-dot"></span>`;
+  }
+
+  return`<div class="member-item"><div class="member-av ${avCls(r)}" style="${isMuted||isTempBanned?'opacity:0.5;':''}">${avHtml}</div><span class="member-name" style="${nameStyle}">${esc(uname)}</span>${statusBadge}</div>`;
 }
 
 function updateMembers(){
   const all=Object.values(allUsers);
-  const filtered=currentChan?.data?.restricted?all.filter(u=>['Owner','Mod','Staff'].includes(u.role)):all;
+  // Filter out perm banned, then filter by channel access
+  const visible=all.filter(u=>!u.banned);
+  const filtered=currentChan?.data?.restricted?visible.filter(u=>['Owner','Mod','Staff'].includes(u.role)):visible;
   const ord=['Owner','Mod','Staff','User'];
   filtered.sort((a,b)=>ord.indexOf(a.role)-ord.indexOf(b.role));
   document.getElementById('memberCount').textContent=filtered.length;
