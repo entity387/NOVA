@@ -514,6 +514,16 @@ input::placeholder { color: rgba(72,79,88,0.8); }
 }
 
 @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+/* ── MOBILE ──────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .login-wrap { width: 100%; padding: 20px 16px; }
+  .logo-name { font-size: 38px; letter-spacing: 10px; }
+  .card { padding: 24px 20px; border-radius: 12px; }
+  .btn-login { font-size: 14px; padding: 13px; }
+  .register-card { width: 92vw; padding: 24px 20px; }
+  input { font-size: 16px; } /* Prevents iOS zoom on focus */
+}
 </style>
 </head>
 <body>
@@ -737,44 +747,7 @@ style.textContent = '@keyframes rippleEffect{0%{transform:scale(0);opacity:0.6}1
 document.head.appendChild(style);
 
 // ── BOOTSTRAP OWNER ───────────────────────────────────────
-async function bootstrapOwner() {
-  try {
-    const cred = await createUserWithEmailAndPassword(auth, 'owner@nova.com', 'Alby1000');
-    await setDoc(doc(db,'users',cred.user.uid), {
-      email:'owner@nova.com', role:'Owner', username:'Owner',
-      warningsCount:0, banned:false, tempBannedUntil:null,
-      mutedUntil:null, pfp:'', pingCount:0, punishmentHistory:[],
-      theme: 'midnight'
-    });
-    await setDoc(doc(db,'settings','global'), {
-      maintenance:false, maintenanceMessage:'System under maintenance.',
-      emergency:false, emergencyMessage:'Emergency shutdown active.',
-      debug:false, voiceMode:'agora'
-    });
-    for (const ch of [
-      {id:'general', name:'general', desc:'General discussion',             restricted:false, readonly:false, access:'all'},
-      {id:'updates', name:'updates', desc:'System updates & announcements', restricted:false, readonly:true,  access:'all'},
-      {id:'staff',   name:'staff',   desc:'Staff team channel',             restricted:true,  readonly:false, access:'staff'},
-      {id:'mod',     name:'mod',     desc:'Mod team channel',               restricted:true,  readonly:false, access:'mod'},
-    ]) await setDoc(doc(db,'channels',ch.id), {...ch, createdAt:Date.now()});
-    await setDoc(doc(db,'channels','devalerts'), {name:'devalerts', private:true, createdAt:Date.now()});
-    await auth.signOut();
-  } catch(e) {
-    if (e.code === 'auth/email-already-in-use') {
-      try {
-        const c = await signInWithEmailAndPassword(auth,'owner@nova.com','Alby1000');
-        const s = await getDoc(doc(db,'users',c.user.uid));
-        if (!s.exists()) await setDoc(doc(db,'users',c.user.uid), {
-          email:'owner@nova.com', role:'Owner', username:'Owner',
-          warningsCount:0, banned:false, tempBannedUntil:null,
-          mutedUntil:null, pfp:'', pingCount:0, punishmentHistory:[], theme:'midnight'
-        });
-        await auth.signOut();
-      } catch(_) {}
-    }
-  }
-}
-bootstrapOwner();
+// Bootstrap removed — owner account already set up
 
 // ── HELPERS ───────────────────────────────────────────────
 function setStatus(msg) {
