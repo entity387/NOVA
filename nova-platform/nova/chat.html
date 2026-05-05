@@ -1401,7 +1401,16 @@ async function loadMyTickets() {
     container.innerHTML='<div style="padding:4px 12px;font-size:11px;color:var(--text-dim)">—</div>';
     return;
   }
-  const myTickets=allDocs;
+  // Filter out tickets escalated away from this role
+  const myTickets = allDocs.filter(d => {
+    const t = d.data();
+    const el = t.escalationLevel || 'none';
+    // Staff: hide tickets escalated to Mod or Owner
+    if (ME.role === 'Staff' && (el === 'staff_to_mod' || el === 'mod_to_owner')) return false;
+    // Mod: hide tickets escalated to Owner
+    if (ME.role === 'Mod' && el === 'mod_to_owner') return false;
+    return true;
+  });
   const visible=myTickets.filter(d=>d.data().status!=='closed');
   if(!visible.length){container.innerHTML='<div style="padding:4px 12px;font-size:11px;color:var(--text-dim)">No open tickets</div>';return;}
   let html='';

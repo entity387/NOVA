@@ -15,6 +15,7 @@
   <nav class="sidebar-nav">
     <button class="nav-btn active" onclick="showPanel('overview')" id="nav-overview"><span class="nav-icon">◈</span> Overview</button>
     <button class="nav-btn"        onclick="showPanel('tickets')"  id="nav-tickets"><span class="nav-icon">⊟</span> Tickets</button>
+    <button class="nav-btn" onclick="showPanel('mytickets')" id="nav-mytickets"><span class="nav-icon">🎫</span> My Tickets</button>
     <button class="nav-btn"        onclick="showPanel('users')"    id="nav-users"><span class="nav-icon">⊕</span> Users</button>
     <button class="nav-btn"        onclick="showPanel('logs')"     id="nav-logs"><span class="nav-icon">⊟</span> Logs</button>
     <button class="nav-btn"        onclick="showPanel('alerts')"   id="nav-alerts"><span class="nav-icon">◬</span> Alerts</button>
@@ -108,7 +109,7 @@ window.showPanel = function(name) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   const nb = document.getElementById('nav-'+name); if (nb) nb.classList.add('active');
   document.getElementById('topbarTitle').textContent = name.toUpperCase();
-  ({ overview, tickets, users, logs, alerts })[name]?.();
+  ({ overview, tickets, users, logs, alerts ,mytickets})[name]?.();
 };
 window.doLogout = async () => { await signOut(auth); sessionStorage.clear(); window.location.href='index.html'; };
 window.simRole  = r => { document.getElementById('hudSim').textContent = r||'—'; };
@@ -206,7 +207,10 @@ async function tickets() {
   document.getElementById('mainContent').innerHTML = '<div class="empty">Loading...</div>';
   const snap = await getDocs(query(collection(db,'tickets'), orderBy('timestamp','desc')));
 
-  const rows = snap.docs.map(d => {
+  const rows = snap.docs.filter(d => {
+    // Mods don't see tickets escalated to Owner
+    return (d.data().escalationLevel || 'none') !== 'mod_to_owner';
+  }).map(d => {
     const t=d.data(); const id=d.id;
     const sp = {open:'pill-open',in_progress:'pill-progress',closed:'pill-closed'}[t.status]||'pill-none';
     const ep = {none:'pill-none',staff_to_mod:'pill-s2m',mod_to_owner:'pill-m2o'}[t.escalationLevel]||'pill-none';
@@ -646,6 +650,48 @@ window.sendAlert = async function() {
 };
 
 overview();
+// ── MY TICKETS ────────────────────────────────────────────
+async function mytickets() {
+  document.getElementById('mainContent').innerHTML = '<div class="empty">Loading...</div>';
+  const snap = await getDocs(collection(db,'tickets'));
+  const mine = snap.docs.filter(d => {
+    const t = d.data();
+    return t.assignedTo === email;
+  });
+
+  if (!mine.length) {
+    document.getElementById('mainContent').innerHTML = `
+      <div class="panel"><div class="panel-title">My Assigned Tickets</div>
+        <div class="empty" style="padding:48px">No tickets assigned to you yet</div>
+      </div>`;
+    return;
+  }
+
+  const rows = mine.map(d => {
+    const t = d.data(); const id = d.id;
+    const sp = {open:'pill-open',in_progress:'pill-progress',closed:'pill-closed'}[t.status]||'pill-none';
+    const pp = t.priority==='high'
+      ? '<span style="font-family:var(--mono);font-size:9px;background:rgba(248,81,73,0.15);color:var(--danger);padding:1px 6px;border-radius:2px;margin-left:5px">HIGH</span>'
+      : t.priority==='medium'
+      ? '<span style="font-family:var(--mono);font-size:9px;background:rgba(210,153,34,0.15);color:var(--warn);padding:1px 6px;border-radius:2px;margin-left:5px">MED</span>' : '';
+    return `<tr>
+      <td><span style="cursor:pointer;color:var(--text);font-weight:600" onclick="openTicket('${id}')">${escHtml(t.subject||'—')}</span>${pp}</td>
+      <td class="mono" style="font-size:11px">${t.createdBy||'—'}</td>
+      <td><span class="pill ${sp}">${t.status||'open'}</span></td>
+      <td class="mono" style="font-size:11px">${ts(t.timestamp)}</td>
+      <td><button class="btn btn-sm" onclick="openTicket('${id}')">Open</button></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('mainContent').innerHTML = `
+    <div class="panel"><div class="panel-title">My Assigned Tickets (${mine.length})</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Subject</th><th>Created By</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
+}
+
 </script>
 </body>
 </html>

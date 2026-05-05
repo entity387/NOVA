@@ -14,6 +14,7 @@
   </div>
   <nav class="sidebar-nav">
     <button class="nav-btn active" onclick="showPanel('tickets')" id="nav-tickets"><span class="nav-icon">⊟</span> Tickets</button>
+    <button class="nav-btn" onclick="showPanel('mytickets')" id="nav-mytickets"><span class="nav-icon">🎫</span> My Tickets</button>
     <button class="nav-btn"        onclick="showPanel('users')"   id="nav-users"><span class="nav-icon">⊕</span> Users</button>
     <button class="nav-btn" onclick="window.location.href='chat.html'" style="margin-top:8px;border-top:1px solid var(--border);padding-top:12px"><span class="nav-icon">←</span> Back to Chat</button>
   </nav>
@@ -80,7 +81,7 @@ window.showPanel = function(name) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   const nb = document.getElementById('nav-'+name); if (nb) nb.classList.add('active');
   document.getElementById('topbarTitle').textContent = name.toUpperCase();
-  ({ tickets, users })[name]?.();
+  ({ tickets, users ,mytickets})[name]?.();
 };
 window.doLogout = async () => { await signOut(auth); sessionStorage.clear(); window.location.href='index.html'; };
 
@@ -107,10 +108,13 @@ async function tickets() {
   document.getElementById('mainContent').innerHTML = '<div class="empty">Loading...</div>';
   const snap = await getDocs(query(collection(db,'tickets'), orderBy('timestamp','desc')));
 
-  // Group by status
+  // Group by status — hide tickets escalated away from Staff
   const groups = { open:[], in_progress:[], closed:[] };
   snap.docs.forEach(d => {
     const t = d.data();
+    const el = t.escalationLevel || 'none';
+    // Staff don't see tickets escalated to Mod or Owner
+    if (el === 'staff_to_mod' || el === 'mod_to_owner') return;
     const s = t.status || 'open';
     if (!groups[s]) groups[s] = [];
     groups[s].push({ ...t, id:d.id });
@@ -401,6 +405,48 @@ window.confirmMute = async function(uid2, uname) {
 };
 
 tickets();
+// ── MY TICKETS ────────────────────────────────────────────
+async function mytickets() {
+  document.getElementById('mainContent').innerHTML = '<div class="empty">Loading...</div>';
+  const snap = await getDocs(collection(db,'tickets'));
+  const mine = snap.docs.filter(d => {
+    const t = d.data();
+    return t.assignedTo === email;
+  });
+
+  if (!mine.length) {
+    document.getElementById('mainContent').innerHTML = `
+      <div class="panel"><div class="panel-title">My Assigned Tickets</div>
+        <div class="empty" style="padding:48px">No tickets assigned to you yet</div>
+      </div>`;
+    return;
+  }
+
+  const rows = mine.map(d => {
+    const t = d.data(); const id = d.id;
+    const sp = {open:'pill-open',in_progress:'pill-progress',closed:'pill-closed'}[t.status]||'pill-none';
+    const pp = t.priority==='high'
+      ? '<span style="font-family:var(--mono);font-size:9px;background:rgba(248,81,73,0.15);color:var(--danger);padding:1px 6px;border-radius:2px;margin-left:5px">HIGH</span>'
+      : t.priority==='medium'
+      ? '<span style="font-family:var(--mono);font-size:9px;background:rgba(210,153,34,0.15);color:var(--warn);padding:1px 6px;border-radius:2px;margin-left:5px">MED</span>' : '';
+    return `<tr>
+      <td><span style="cursor:pointer;color:var(--text);font-weight:600" onclick="openTicket('${id}')">${escHtml(t.subject||'—')}</span>${pp}</td>
+      <td class="mono" style="font-size:11px">${t.createdBy||'—'}</td>
+      <td><span class="pill ${sp}">${t.status||'open'}</span></td>
+      <td class="mono" style="font-size:11px">${ts(t.timestamp)}</td>
+      <td><button class="btn btn-sm" onclick="openTicket('${id}')">Open</button></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('mainContent').innerHTML = `
+    <div class="panel"><div class="panel-title">My Assigned Tickets (${mine.length})</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Subject</th><th>Created By</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
+}
+
 </script>
 </body>
 </html>
