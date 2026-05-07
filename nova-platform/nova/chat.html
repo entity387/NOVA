@@ -438,7 +438,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);display:flex;f
 }
 .member-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
 .member-name{font-size:12px;font-weight:500;color:var(--text-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.online-dot{width:6px;height:6px;border-radius:50%;background:var(--success);flex-shrink:0;animation:breathe 3s ease-in-out infinite;}
+.presence-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;border:1.5px solid var(--surface1);}
+.presence-dot.online{background:#3fb950;box-shadow:0 0 6px rgba(63,185,80,.5);animation:breathe 3s ease-in-out infinite;}
+.presence-dot.away{background:#d29922;}
+.presence-dot.offline{background:#484f58;}
+.pgroup-label{font-family:var(--mono);font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);padding:8px 12px 3px;}
 
 /* ── VOICE CONTROLS ──────────────────────────────────────── */
 .voice-active-box{
@@ -692,6 +696,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);display:flex;f
       </div>
     </div>
     <button class="btn-top btn-dashboard" id="dashBtn" style="display:none" onclick="goToDashboard()">⚙ Dashboard</button>
+    <button class="btn-top" onclick="window.location.href='arcade.html'" style="background:var(--glow2);border-color:var(--accent);color:var(--accent2)">🕹 Arcade</button>
     <button class="btn-top btn-ticket" onclick="openSubmitTicket()">🎫 Ticket</button>
     <button class="btn-top" onclick="doSignOut()">Sign Out</button>
   </div>
@@ -889,6 +894,7 @@ onAuthStateChanged(auth, async user => {
   await buildLeft();
   watchSettings();
   watchMyProfile();
+  initPresence();
   if (settSnap.exists()) updateDebugHud(settSnap.data().debug);
 });
 
@@ -1271,48 +1277,107 @@ window.scrollToMsg=function(id){const el=document.getElementById('msg-'+id);if(e
 function clearMyPings(){if(ME.pingCount>0)updateDoc(doc(db,'users',ME.uid),{pingCount:0});}
 
 // ── MEMBERS ───────────────────────────────────────────────
-function memberRow(u){
+
+// ── PRESENCE SYSTEM ───────────────────────────────────────
+// States: online (active <2min), away (tab hidden), offline (>2min or closed)
+let _presenceData = {}; // uid -> status string
+
+function initPresence() {
+  if (!ME) return;
+  const ref = doc(db, 'presence', ME.uid);
+
+  // Write our status every 10 seconds.
+  // online  = this tab is visible
+  // away    = a nova tab is open but not focused
+  // offline = no nova tab (handled by lastSeen expiry — if no write for >15s, treated as offline)
+  async function tick() {
+    const status = document.visibilityState === 'visible' ? 'online' : 'away';
+    try {
+      await setDoc(ref, { status, lastSeen: Date.now(), uid: ME.uid }, { merge: true });
+    } catch(_) {}
+  }
+
+  tick(); // immediate write on load
+  setInterval(tick, 10000); // then every 10s
+
+  // Watch all presence docs live
+  onSnapshot(collection(db, 'presence'), snap => {
+    const now = Date.now();
+    snap.docs.forEach(d => {
+      const p = d.data();
+      // If lastSeen is older than 15s, the tab is closed — treat as offline
+      const stale = (now - (p.lastSeen || 0)) > 15000;
+      _presenceData[d.id] = stale ? 'offline' : (p.status || 'offline');
+    });
+    updateMembers();
+  });
+}
+
+function getPresence(uid) {
+  return _presenceData[uid] || 'offline';
+}
+
+function memberRow(u, showPresenceDot=true){
   if(!u)return'';
-  // Hide perm banned users entirely
   if(u.banned)return'';
   const r=u.role||'User';const uname=u.username||u.email||'?';
   const now=Date.now();
-
-  // Check mute status
   const mutedUntil=u.mutedUntil?(u.mutedUntil.seconds?u.mutedUntil.seconds*1000:new Date(u.mutedUntil).getTime()):0;
   const isMuted=mutedUntil>now;
-
-  // Check temp ban status
   const tempUntil=u.tempBannedUntil?(u.tempBannedUntil.seconds?u.tempBannedUntil.seconds*1000:new Date(u.tempBannedUntil).getTime()):0;
   const isTempBanned=tempUntil>now;
-
   const avHtml=u.pfp?`<img src="${u.pfp}">`:`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:8px;font-family:var(--mono);font-weight:700">${uname[0].toUpperCase()}</div>`;
+  const presence=getPresence(u.uid);
 
-  // Status indicator
-  let statusBadge='';
+  let right='';
   let nameStyle='';
   if(isTempBanned){
-    statusBadge=`<span style="font-family:var(--mono);font-size:8px;color:var(--danger);background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.25);padding:1px 5px;border-radius:8px;flex-shrink:0;margin-left:auto">BANNED</span>`;
+    right=`<span style="font-family:var(--mono);font-size:8px;color:var(--danger);background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.25);padding:1px 5px;border-radius:8px;flex-shrink:0">BANNED</span>`;
     nameStyle='opacity:0.5;';
   } else if(isMuted){
-    statusBadge=`<span style="font-size:11px;flex-shrink:0;margin-left:auto" title="Muted">🔇</span>`;
+    right=`<span style="font-size:11px;flex-shrink:0" title="Muted">🔇</span>`;
     nameStyle='opacity:0.6;';
-  } else {
-    statusBadge=`<span class="online-dot"></span>`;
+  } else if(showPresenceDot){
+    right=`<span class="presence-dot ${presence}" title="${presence.charAt(0).toUpperCase()+presence.slice(1)}"></span>`;
   }
 
-  return`<div class="member-item"><div class="member-av ${avCls(r)}" style="${isMuted||isTempBanned?'opacity:0.5;':''}">${avHtml}</div><span class="member-name" style="${nameStyle}">${esc(uname)}</span>${statusBadge}</div>`;
+  const dimmed=presence==='offline'&&!isTempBanned&&!isMuted?'opacity:0.45;':'';
+  return`<div class="member-item" style="${dimmed}"><div class="member-av ${avCls(r)}" style="${isMuted||isTempBanned?'opacity:0.5;':''}">${avHtml}</div><span class="member-name" style="${nameStyle}">${esc(uname)}</span>${right}</div>`;
 }
 
 function updateMembers(){
   const all=Object.values(allUsers);
-  // Filter out perm banned, then filter by channel access
   const visible=all.filter(u=>!u.banned);
   const filtered=currentChan?.data?.restricted?visible.filter(u=>['Owner','Mod','Staff'].includes(u.role)):visible;
   const ord=['Owner','Mod','Staff','User'];
-  filtered.sort((a,b)=>ord.indexOf(a.role)-ord.indexOf(b.role));
+
+  // Split by presence
+  const online=filtered.filter(u=>getPresence(u.uid)==='online');
+  const away=filtered.filter(u=>getPresence(u.uid)==='away');
+  const offline=filtered.filter(u=>getPresence(u.uid)==='offline');
+
+  // Sort each group by role
+  const byRole=(a,b)=>ord.indexOf(a.role||'User')-ord.indexOf(b.role||'User');
+  online.sort(byRole);away.sort(byRole);offline.sort(byRole);
+
+  const onlineCount=online.length+away.length;
   document.getElementById('memberCount').textContent=filtered.length;
-  document.getElementById('memberList').innerHTML=filtered.map(u=>memberRow(u)).join('');
+
+  let html='';
+  if(online.length){
+    html+=`<div class="pgroup-label">Online — ${online.length}</div>`;
+    html+=online.map(u=>memberRow(u)).join('');
+  }
+  if(away.length){
+    html+=`<div class="pgroup-label">Away — ${away.length}</div>`;
+    html+=away.map(u=>memberRow(u)).join('');
+  }
+  if(offline.length){
+    html+=`<div class="pgroup-label">Offline — ${offline.length}</div>`;
+    html+=offline.map(u=>memberRow(u)).join('');
+  }
+
+  document.getElementById('memberList').innerHTML=html;
 }
 
 // ── DMs ───────────────────────────────────────────────────
