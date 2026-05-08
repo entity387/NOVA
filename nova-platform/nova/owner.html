@@ -665,6 +665,7 @@ async function settings() {
       <div class="toggle-row"><div><div class="toggle-label">Emergency Shutdown</div><div class="toggle-desc">Only Owner can access.</div></div><label class="toggle"><input type="checkbox" ${s.emergency?'checked':''} onchange="saveSetting('emergency',this.checked)"><span class="toggle-slider"></span></label></div>
       <div class="toggle-row"><div><div class="toggle-label">Debug Mode</div><div class="toggle-desc">Requires maintenance mode.</div></div><label class="toggle"><input type="checkbox" ${s.debug?'checked':''} ${!s.maintenance?'disabled':''} onchange="saveSetting('debug',this.checked)"><span class="toggle-slider"></span></label></div>
       <div class="toggle-row"><div><div class="toggle-label">Force WebRTC Fallback</div><div class="toggle-desc">Disables Agora, uses WebRTC (6 person cap).</div></div><label class="toggle"><input type="checkbox" ${s.voiceMode==='webrtc'?'checked':''} onchange="saveSetting('voiceMode',this.checked?'webrtc':'agora')"><span class="toggle-slider"></span></label></div>
+      <div class="toggle-row"><div><div class="toggle-label">🕹 Disable Arcade</div><div class="toggle-desc">Blocks all users from accessing the arcade.</div></div><label class="toggle"><input type="checkbox" ${s.arcadeDisabled?'checked':''} onchange="saveSetting('arcadeDisabled',this.checked)"><span class="toggle-slider"></span></label></div>
     </div>
     <div class="mb-20"></div>
     <div class="card">

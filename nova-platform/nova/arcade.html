@@ -294,6 +294,21 @@ onAuthStateChanged(auth,async u=>{
   const s=await getDoc(doc(db,'users',u.uid));
   if(!s.exists()){location.href='index.html';return;}
   ME={uid:u.uid,...s.data()};ME.username=ME.username||ME.email.split('@')[0];
+
+  // Check if arcade is disabled (owners bypass)
+  if(ME.role!=='Owner'){
+    const gs=await getDoc(doc(db,'settings','global'));
+    if(gs.exists()&&gs.data().arcadeDisabled){
+      document.body.innerHTML=`<div style="height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#080b10;color:#e6edf3;font-family:'Share Tech Mono',monospace;gap:16px">
+        <div style="font-size:48px">🕹</div>
+        <div style="font-size:18px;letter-spacing:4px;text-transform:uppercase">Arcade Offline</div>
+        <div style="font-size:12px;color:#484f58;letter-spacing:2px">Temporarily disabled by admin</div>
+        <a href="chat.html" style="margin-top:12px;background:rgba(124,58,237,.2);border:1px solid rgba(124,58,237,.4);color:#a855f7;padding:8px 20px;border-radius:20px;text-decoration:none;font-size:11px;letter-spacing:2px">← Back to Chat</a>
+      </div>`;
+      return;
+    }
+  }
+
   $('utag').textContent=ME.username;
   const as=await getDoc(doc(db,'arcadeStats',u.uid));
   if(as.exists())ST={...ST,...as.data()};
@@ -568,49 +583,39 @@ window.startRun=function(){
 };
 // Henry Stickmin character renderer — circle head, stick limbs, expressive
 function drawStickman(ctx,x,y,sk,stepF,onGnd,inAir,dead){
-  const TH=52;ctx.save();ctx.translate(x,y);
-  // Shadow
-  ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(8,TH+3,12,5,0,0,Math.PI*2);ctx.fill();
-  const leg=onGnd?Math.sin(stepF*.26):.0;
-  ctx.strokeStyle=sk.col;ctx.lineWidth=3.5;ctx.lineCap='round';ctx.lineJoin='round';
+  // Simple stickman — thin lines, circle head, single eye dot
+  const TH=52,cx=8;
+  ctx.save();ctx.translate(x,y);
+  ctx.strokeStyle=sk.col;ctx.lineWidth=2;ctx.lineCap='round';ctx.lineJoin='round';
   if(dead){
-    // Ragdoll
-    ctx.save();ctx.translate(8,TH/2);ctx.rotate(Math.PI*.45);
-    ctx.beginPath();ctx.moveTo(0,-TH*.25);ctx.lineTo(0,TH*.22);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(0,-TH*.1);ctx.lineTo(-14,3);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(0,-TH*.1);ctx.lineTo(12,-TH*.18);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(0,TH*.22);ctx.lineTo(-10,TH*.5);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(0,TH*.22);ctx.lineTo(8,TH*.48);ctx.stroke();
-    ctx.strokeStyle=sk.hl||sk.col;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(0,-TH*.35,8,0,Math.PI*2);ctx.stroke();
+    // Knocked out — lying flat
+    ctx.save();ctx.translate(cx,TH*.5);ctx.rotate(Math.PI*.5);
+    ctx.beginPath();ctx.moveTo(0,-14);ctx.lineTo(0,14);ctx.stroke(); // body
+    ctx.beginPath();ctx.moveTo(0,-7);ctx.lineTo(-11,-1);ctx.stroke(); // arm L
+    ctx.beginPath();ctx.moveTo(0,-7);ctx.lineTo(11,-1);ctx.stroke();  // arm R
+    ctx.beginPath();ctx.moveTo(0,14);ctx.lineTo(-8,22);ctx.stroke();  // leg L
+    ctx.beginPath();ctx.moveTo(0,14);ctx.lineTo(8,22);ctx.stroke();   // leg R
+    ctx.beginPath();ctx.arc(0,-22,8,0,Math.PI*2);ctx.stroke();        // head
+    ctx.fillStyle='rgba(255,80,80,.6)';ctx.beginPath();ctx.arc(3,-22,1.5,0,Math.PI*2);ctx.fill(); // dazed eye
     ctx.restore();
   }else{
+    const leg=onGnd?Math.sin(stepF*.26)*.2:0;
+    const armSwing=inAir?-.4:Math.sin(stepF*.26)*.4;
     // Legs
-    const l1y=TH*.55+Math.cos(leg)*6;const l2y=TH*.55-Math.cos(leg)*6;
-    ctx.beginPath();ctx.moveTo(8,TH*.5);ctx.lineTo(8-Math.sin(leg)*11,TH*.55+Math.cos(leg)*8+TH*.35);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(8,TH*.5);ctx.lineTo(8+Math.sin(leg)*11,TH*.55-Math.cos(leg)*8+TH*.35);ctx.stroke();
-    // Shoes
-    ctx.fillStyle=sk.col+'cc';
-    ctx.beginPath();ctx.ellipse(8-Math.sin(leg)*11,TH*.9+Math.cos(leg)*8+3,5,3,0,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(8+Math.sin(leg)*11,TH*.9-Math.cos(leg)*8+3,5,3,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.moveTo(cx,TH*.5);ctx.lineTo(cx-9+Math.sin(leg)*8,TH*.88);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx,TH*.5);ctx.lineTo(cx+9-Math.sin(leg)*8,TH*.88);ctx.stroke();
     // Body
-    ctx.beginPath();ctx.moveTo(8,TH*.16);ctx.lineTo(8,TH*.5);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx,TH*.16);ctx.lineTo(cx,TH*.5);ctx.stroke();
     // Arms
-    const aa=inAir?-.5:Math.sin(stepF*.26)*.45;
-    ctx.beginPath();ctx.moveTo(8,TH*.28);ctx.lineTo(8-13,TH*.28+Math.sin(aa)*10);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(8,TH*.28);ctx.lineTo(21,TH*.28-Math.sin(aa)*10);ctx.stroke();
-    // Head — circle with 3D shading
-    const hR=9,hY=TH*.08;
-    ctx.fillStyle='rgba(0,0,0,.22)';ctx.beginPath();ctx.arc(9,hY+1,hR,0,Math.PI*2);ctx.fill();
-    const hg=ctx.createRadialGradient(5,hY-4,1,8,hY,hR);hg.addColorStop(0,sk.hl||sk.col);hg.addColorStop(.5,sk.col);hg.addColorStop(1,sk.col+'66');
-    ctx.fillStyle=hg;ctx.beginPath();ctx.arc(8,hY,hR,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle='rgba(0,0,0,.25)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(8,hY,hR,0,Math.PI*2);ctx.stroke();
-    // Eye
-    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(12,hY-1,2.8,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#111';ctx.beginPath();ctx.arc(12.4,hY-1,1.4,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,.9)';ctx.beginPath();ctx.arc(12,hY-2,.7,0,Math.PI*2);ctx.fill();
-    // Mouth
-    ctx.strokeStyle='rgba(220,180,180,.8)';ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.arc(10,hY+3,2.5,.15,Math.PI-.15);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx,TH*.27);ctx.lineTo(cx-13,TH*.27+Math.sin(armSwing)*11);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx,TH*.27);ctx.lineTo(cx+13,TH*.27-Math.sin(armSwing)*11);ctx.stroke();
+    // Head — plain filled circle, colour-coded per skin
+    const hY=TH*.08;
+    ctx.fillStyle=sk.col;ctx.beginPath();ctx.arc(cx,hY,8,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=sk.col;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(cx,hY,8,0,Math.PI*2);ctx.stroke();
+    // Single eye dot
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx+3.5,hY-1,2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#111';ctx.beginPath();ctx.arc(cx+3.8,hY-1,1,0,Math.PI*2);ctx.fill();
   }
   ctx.restore();
 }
@@ -678,56 +683,40 @@ window.startSlythr=function(){
   function draw(){
     // BG
     ctx.fillStyle='#080b10';ctx.fillRect(0,0,W,H);
-    // Subtle grid
+    // Grid
     ctx.strokeStyle='rgba(30,40,55,.45)';ctx.lineWidth=.5;
     for(let x=0;x<=cols;x++){ctx.beginPath();ctx.moveTo(x*SZ,0);ctx.lineTo(x*SZ,H);ctx.stroke();}
     for(let y=0;y<=rows;y++){ctx.beginPath();ctx.moveTo(0,y*SZ);ctx.lineTo(W,y*SZ);ctx.stroke();}
-    // Eat flash ring
-    if(eatFlash){ctx.strokeStyle=`rgba(248,81,73,${.5*(1-eatFlash.r/(SZ*2.2))})`;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(eatFlash.x,eatFlash.y,eatFlash.r,0,Math.PI*2);ctx.stroke();}
-    // Food — triple glow layers
+    // Food — solid square with small flash on eat
     if(food){
-      const pulse=.5+.35*Math.sin(foodGlow);
-      ctx.fillStyle=`rgba(248,81,73,${pulse*.12})`;ctx.beginPath();ctx.arc((food.x+.5)*SZ,(food.y+.5)*SZ,SZ*.75,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle=`rgba(248,81,73,${pulse*.28})`;ctx.beginPath();ctx.arc((food.x+.5)*SZ,(food.y+.5)*SZ,SZ*.46,0,Math.PI*2);ctx.fill();
-      const fg=ctx.createRadialGradient((food.x+.5)*SZ-2,(food.y+.5)*SZ-2,1,(food.x+.5)*SZ,(food.y+.5)*SZ,SZ*.3);
-      fg.addColorStop(0,'#ffaaaa');fg.addColorStop(1,'#f85149');
-      ctx.fillStyle=fg;ctx.beginPath();ctx.arc((food.x+.5)*SZ,(food.y+.5)*SZ,SZ*.27,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='rgba(255,255,255,.65)';ctx.beginPath();ctx.arc((food.x+.5)*SZ-2,(food.y+.5)*SZ-2,2,0,Math.PI*2);ctx.fill();
+      if(eatFlash){ctx.fillStyle='rgba(248,81,73,.18)';ctx.fillRect((food.x)*SZ-2,(food.y)*SZ-2,SZ+4,SZ+4);}
+      ctx.fillStyle='#f85149';
+      ctx.fillRect(food.x*SZ+2,food.y*SZ+2,SZ-4,SZ-4);
     }
-    // Snake segments — 3D radial gradient per segment
+    // Snake — classic solid squares, brighter head
     snake.forEach((seg,i)=>{
-      const isHead=i===0;const cx=(seg.x+.5)*SZ,cy=(seg.y+.5)*SZ;
-      const r=isHead?SZ*.44:SZ*.38;
-      // Segment glow (fade toward tail)
-      if(i<6){const ga=(6-i)/6;ctx.fillStyle=`rgba(${hexToRgbStr(sk.hl)},${ga*.18})`;ctx.beginPath();ctx.arc(cx,cy,r+5,0,Math.PI*2);ctx.fill();}
-      // 3D sphere gradient
-      const t=i/snake.length;const lightCol=lerpCol(sk.hl,sk.col,Math.min(t*1.5,.85));
-      const sg=ctx.createRadialGradient(cx-r*.35,cy-r*.35,1,cx,cy,r);
-      sg.addColorStop(0,isHead?sk.hl:lightCol);sg.addColorStop(.55,sk.col);sg.addColorStop(1,sk.col+'55');
-      ctx.fillStyle=sg;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle='rgba(0,0,0,.28)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
-      // Head details
+      const isHead=i===0;
+      const t=i/Math.max(snake.length-1,1);
       if(isHead){
-        // Eyes — follow direction
-        const eyeOff=r*.48,eo=r*.5;
-        const e1x=cx+dir.x*eo*.8+(-dir.y)*eo*.5,e1y=cy+dir.y*eo*.8+dir.x*eo*.5;
-        const e2x=cx+dir.x*eo*.8+dir.y*eo*.5,e2y=cy+dir.y*eo*.8+(-dir.x)*eo*.5;
-        ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(e1x,e1y,3.2,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(e2x,e2y,3.2,0,Math.PI*2);ctx.fill();
-        ctx.fillStyle='#111';ctx.beginPath();ctx.arc(e1x+dir.x*.5,e1y+dir.y*.5,1.6,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(e2x+dir.x*.5,e2y+dir.y*.5,1.6,0,Math.PI*2);ctx.fill();
-        ctx.fillStyle='rgba(255,255,255,.8)';ctx.beginPath();ctx.arc(e1x,e1y-1,.7,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(e2x,e2y-1,.7,0,Math.PI*2);ctx.fill();
-        // Tongue — forked
-        ctx.strokeStyle='#f85149';ctx.lineWidth=1.5;ctx.lineCap='round';
-        const tx2=cx+dir.x*(r+3),ty2=cy+dir.y*(r+3);
-        const tx3=cx+dir.x*(r+9),ty3=cy+dir.y*(r+9);
-        ctx.beginPath();ctx.moveTo(tx2,ty2);ctx.lineTo(tx3,ty3);ctx.stroke();
-        ctx.beginPath();ctx.moveTo(tx3,ty3);ctx.lineTo(tx3+dir.y*3+dir.x*2,ty3-dir.x*3+dir.y*2);ctx.stroke();
-        ctx.beginPath();ctx.moveTo(tx3,ty3);ctx.lineTo(tx3-dir.y*3+dir.x*2,ty3+dir.x*3+dir.y*2);ctx.stroke();
+        ctx.fillStyle='#4ade80';
+      }else{
+        // Fade from bright green to darker toward tail
+        const g=Math.round(180-t*80);
+        ctx.fillStyle=`rgb(22,${g},60)`;
+      }
+      ctx.fillRect(seg.x*SZ+1,seg.y*SZ+1,SZ-2,SZ-2);
+      // Head eyes — two small dots facing direction
+      if(isHead){
+        ctx.fillStyle='#000';
+        const ex=seg.x*SZ,ey=seg.y*SZ;
+        if(dir.x===1){ctx.fillRect(ex+SZ-5,ey+4,3,3);ctx.fillRect(ex+SZ-5,ey+SZ-7,3,3);}
+        else if(dir.x===-1){ctx.fillRect(ex+2,ey+4,3,3);ctx.fillRect(ex+2,ey+SZ-7,3,3);}
+        else if(dir.y===-1){ctx.fillRect(ex+4,ey+2,3,3);ctx.fillRect(ex+SZ-7,ey+2,3,3);}
+        else{ctx.fillRect(ex+4,ey+SZ-5,3,3);ctx.fillRect(ex+SZ-7,ey+SZ-5,3,3);}
       }
     });
-    // Particles
-    parts.forEach(p=>{ctx.globalAlpha=p.life;ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.r*p.life,0,Math.PI*2);ctx.fill();});ctx.globalAlpha=1;
     // Score pill
-    ctx.fillStyle='rgba(0,0,0,.55)';ctx.beginPath();ctx.roundRect(8,8,88,26,5);ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,.6)';ctx.beginPath();ctx.roundRect(8,8,90,26,5);ctx.fill();
     ctx.fillStyle='#e6edf3';ctx.font='14px Share Tech Mono';ctx.fillText('🐍 '+(score+3),14,26);
   }
   draw();slInt=setInterval(tick,tickMs);
@@ -1095,47 +1084,33 @@ function drawRage(ctx,W,H,map,plats,weapons,players,parts,hitNums,frame){
     if(p.elim)return;
     if(p.dead){ctx.globalAlpha=Math.min(1,p.respT/90*.8);ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x+p.w/2,p.y+p.h/2,13,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;return;}
     ctx.save();ctx.translate(p.x,p.y);
-    if(p.hitFlash>0&&p.hitFlash%2===0){ctx.globalAlpha=.45;ctx.fillStyle='#f85149';ctx.fillRect(0,0,p.w,p.h);ctx.globalAlpha=1;}
-    // Flip for facing direction
+    if(p.hitFlash>0&&p.hitFlash%2===0){ctx.globalAlpha=.5;ctx.fillStyle='#f85149';ctx.fillRect(0,0,p.w,p.h);ctx.globalAlpha=1;}
+    // Simple stickman — scale to face direction
     ctx.scale(p.facing,1);
     const cx=p.w/2;
-    // Shadow
-    ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(cx,p.h+3,p.w*.55,5,0,0,Math.PI*2);ctx.fill();
-    // Draw stickman facing right (then flip canvas above for facing left)
-    const sf=1; // always draw right-facing, flip handles direction
     const onGndLocal=p.onGnd;
-    const lf=onGndLocal?Math.sin(p.stepF*.27)*.22:0;
-    const legLen=p.h*.37;
-    ctx.strokeStyle=p.col;ctx.lineWidth=3.5;ctx.lineCap='round';ctx.lineJoin='round';
+    const lf=onGndLocal?Math.sin(p.stepF*.27)*.2:0;
+    const aa=p.atk?-.5:onGndLocal?Math.sin(p.stepF*.27)*.4:-.3;
+    ctx.strokeStyle=p.col;ctx.lineWidth=2;ctx.lineCap='round';ctx.lineJoin='round';
     // Legs
-    ctx.beginPath();ctx.moveTo(cx-3,p.h*.52);ctx.lineTo(cx-3+Math.sin(lf)*11,p.h*.52+legLen+Math.cos(lf)*5);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(cx+3,p.h*.52);ctx.lineTo(cx+3-Math.sin(lf)*11,p.h*.52+legLen-Math.cos(lf)*5);ctx.stroke();
-    // Shoes
-    ctx.fillStyle=p.col+'cc';ctx.beginPath();ctx.ellipse(cx-3+Math.sin(lf)*11,p.h*.52+legLen+Math.cos(lf)*5+2,5,3,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(cx+3-Math.sin(lf)*11,p.h*.52+legLen-Math.cos(lf)*5+2,5,3,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.moveTo(cx,p.h*.5);ctx.lineTo(cx-9+Math.sin(lf)*8,p.h*.88);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx,p.h*.5);ctx.lineTo(cx+9-Math.sin(lf)*8,p.h*.88);ctx.stroke();
     // Body
-    ctx.beginPath();ctx.moveTo(cx,p.h*.16);ctx.lineTo(cx,p.h*.52);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx,p.h*.16);ctx.lineTo(cx,p.h*.5);ctx.stroke();
     // Arms
-    const aa=p.atk?-Math.PI*.55:onGndLocal?Math.sin(p.stepF*.27)*.38:-.4;
-    ctx.strokeStyle=p.col+'bb';ctx.beginPath();ctx.moveTo(cx,p.h*.29);ctx.lineTo(cx-11,p.h*.29-Math.sin(aa)*10);ctx.stroke();
-    ctx.strokeStyle=p.col;ctx.beginPath();ctx.moveTo(cx,p.h*.29);ctx.lineTo(cx+14,p.h*.29+Math.sin(aa)*11);ctx.stroke();
-    // Weapon in front hand
-    if(p.weapon){ctx.font=`${p.atk?23:19}px serif`;ctx.textAlign='center';ctx.fillText(p.weapon.em,cx+15,p.h*.29+Math.sin(aa)*11+6);ctx.textAlign='left';}
-    // Attack flash arc
-    if(p.atk&&p.atkF<11){ctx.strokeStyle=`rgba(255,215,0,${(11-p.atkF)*.07})`;ctx.lineWidth=18;ctx.lineCap='round';ctx.beginPath();ctx.arc(cx+14,p.h*.29,22,-.5,.5);ctx.stroke();}
-    // Head — circle 3D
-    const hY=p.h*.1;const hR=9;
-    ctx.fillStyle='rgba(0,0,0,.22)';ctx.beginPath();ctx.arc(cx+1,hY+1,hR,0,Math.PI*2);ctx.fill();
-    const hg=ctx.createRadialGradient(cx-3,hY-4,1,cx,hY,hR);hg.addColorStop(0,p.hl||p.col);hg.addColorStop(.55,p.col);hg.addColorStop(1,p.col+'66');
-    ctx.fillStyle=hg;ctx.beginPath();ctx.arc(cx,hY,hR,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle='rgba(0,0,0,.25)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(cx,hY,hR,0,Math.PI*2);ctx.stroke();
-    // Eye
-    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx+4,hY-1,3,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#111';ctx.beginPath();ctx.arc(cx+4.4,hY-1,1.5,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,.8)';ctx.beginPath();ctx.arc(cx+4,hY-2,.7,0,Math.PI*2);ctx.fill();
-    // Expression — scared at high %
-    ctx.strokeStyle='rgba(220,170,170,.75)';ctx.lineWidth=1.5;
-    if(p.dmg>110)ctx.beginPath(),ctx.arc(cx+3,hY+4,2.5,0,Math.PI),ctx.stroke();
-    else ctx.beginPath(),ctx.arc(cx+3,hY+3,2.5,.1,Math.PI-.1),ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx,p.h*.28);ctx.lineTo(cx-13,p.h*.28+Math.sin(aa)*11);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx,p.h*.28);ctx.lineTo(cx+13,p.h*.28-Math.sin(aa)*11);ctx.stroke();
+    // Weapon emoji at front hand
+    if(p.weapon){ctx.font=`${p.atk?22:17}px serif`;ctx.textAlign='center';ctx.fillText(p.weapon.em,cx+14,p.h*.28-Math.sin(aa)*11+5);ctx.textAlign='left';}
+    // Attack flash
+    if(p.atk&&p.atkF<10){ctx.strokeStyle=`rgba(255,215,0,${(10-p.atkF)*.08})`;ctx.lineWidth=16;ctx.beginPath();ctx.arc(cx+13,p.h*.28,20,-.5,.5);ctx.stroke();}
+    // Head — solid circle, colour per skin/bot
+    const hY=p.h*.09;
+    ctx.fillStyle=p.col;ctx.strokeStyle=p.col;ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(cx,hY,8,0,Math.PI*2);ctx.fill();ctx.stroke();
+    // Eye dot
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx+3.5,hY-1,2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#111';ctx.beginPath();ctx.arc(cx+3.8,hY-1,1,0,Math.PI*2);ctx.fill();
     ctx.restore();
     // Name+dmg tag
     const tw=Math.max(58,p.name.length*7+18);
