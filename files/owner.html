@@ -22,6 +22,7 @@
     <button class="nav-btn"        onclick="showPanel('logs')"      id="nav-logs"><span class="nav-icon">⊟</span> Logs</button>
     <button class="nav-btn"        onclick="showPanel('alerts')"    id="nav-alerts"><span class="nav-icon">◬</span> Alerts</button>
     <button class="nav-btn"        onclick="showPanel('roles')"     id="nav-roles"><span class="nav-icon">◇</span> Roles</button>
+    <button class="nav-btn"        onclick="showPanel('guide')"     id="nav-guide"><span class="nav-icon">📋</span> Guide</button>
     <button class="nav-btn" onclick="window.location.href='chat.html'"
       style="margin-top:8px;border-top:1px solid var(--border);padding-top:12px">
       <span class="nav-icon">←</span> Back to Chat
@@ -114,7 +115,7 @@ window.showPanel = function(name) {
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   const nb = document.getElementById('nav-'+name); if(nb) nb.classList.add('active');
   document.getElementById('topbarTitle').textContent = name.toUpperCase();
-  ({overview,tickets,users,channels,settings,logs,alerts,roles,mytickets})[name]?.();
+  ({overview,tickets,users,channels,settings,logs,alerts,roles,mytickets,guide:guidePanel})[name]?.();
 };
 window.doLogout  = async () => { await signOut(auth); sessionStorage.clear(); window.location.href='index.html'; };
 window.simRole   = r => { document.getElementById('hudSim').textContent = r||'—'; };
@@ -488,8 +489,28 @@ window.manageUser = async function(uid2) {
           </select>
         </div>
         <div class="form-group">
-          <div class="form-label">Punishment Reason</div>
-          <input class="form-input" id="mPunishReason" placeholder="Optional reason">
+          <div class="form-label">Rule Broken (for mute/temp ban)</div>
+          <select class="form-select" id="mRuleSelect" onchange="
+            var o=document.getElementById('mOtherWrap');
+            if(this.value==='other')o.style.display='block';
+            else o.style.display='none';
+            showRuleHint(this.value,'owner');">
+            <option value="" disabled selected>Select a rule...</option>
+            <option value="01: Be Respectful">01 — Be Respectful</option>
+            <option value="02: No Spam">02 — No Spam</option>
+            <option value="03: No NSFW Content">03 — No NSFW Content</option>
+            <option value="04: No Self-Promotion or Advertising">04 — No Self-Promotion or Advertising</option>
+            <option value="05: No Doxxing or Personal Info">05 — No Doxxing or Personal Info</option>
+            <option value="06: Not Following Staff Instructions">06 — Not Following Staff Instructions</option>
+            <option value="07: Ban/Mute Evasion">07 — Ban/Mute Evasion</option>
+            <option value="08: English Only in General">08 — English Only in General</option>
+            <option value="09: Minimodding">09 — Minimodding</option>
+            <option value="other">Other — please explain</option>
+          </select>
+          <div id="mOtherWrap" style="display:none;margin-top:8px">
+            <textarea class="form-textarea" id="mOtherText" placeholder="Describe what the user did..." style="min-height:60px"></textarea>
+          </div>
+          <div id="mRuleHint"></div>
         </div>
       </div>
       <div>
@@ -503,27 +524,49 @@ window.manageUser = async function(uid2) {
       ${u.warningsCount>0?`<button class="btn btn-success btn-sm" onclick="removeWarnings('${uid2}','${uname}')">Remove Warnings (${u.warningsCount})</button>`:''}
       ${isMuted?`<button class="btn btn-success btn-sm" onclick="unmute('${uid2}','${uname}')">Unmute</button>`:''}
       ${isTempBanned?`<button class="btn btn-success btn-sm" onclick="untempban('${uid2}','${uname}')">Remove Temp Ban</button>`:''}
-      ${u.banned?`<button class="btn btn-success btn-sm" onclick="unban('${uid2}','${uname}')">Unban</button>`:`<button class="btn btn-danger btn-sm" onclick="permBan('${uid2}','${uname}')">Perm Ban</button>`}
+      ${u.banned?`<button class="btn btn-success btn-sm" onclick="unban('${uid2}','${uname}')">Unban</button>`:`<button class="btn btn-danger btn-sm" onclick="closeModal();permBan('${uid2}','${uname}')">Perm Ban</button>`}
       <button class="btn btn-warn btn-sm" onclick="warnUser('${uid2}','${uname}')">Warn</button>
       <button class="btn btn-primary" onclick="saveUser('${uid2}','${uname}')">Apply</button>
     </div>`, true);
 };
 
 window.warnUser = function(uid2, uname) {
-  openModal(`
-    <div class="modal-title">⚠️ Warn: ${uname}</div>
+  openModal(`<div class="modal-title">⚠️ Warn: ${uname}</div>
     <div class="form-group">
-      <label class="form-label">Reason <span style="color:var(--text-dim)">(optional)</span></label>
-      <textarea class="form-textarea" id="warnReason" placeholder="What is this warning for?" style="min-height:80px"></textarea>
+      <label class="form-label">Rule Broken <span style="color:var(--danger)">*</span></label>
+      <select class="form-select" id="mRuleSelect" onchange="
+        var o=document.getElementById('mOtherWrap');
+        var btn=document.getElementById('mConfirmBtn');
+        if(this.value==='other'){o.style.display='block';btn&&(btn.disabled=true);}
+        else{o.style.display='none';btn&&(btn.disabled=false);}
+        showRuleHint(this.value,'owner');
+      " required>
+        <option value="" disabled selected>Select a rule...</option>
+        <option value="01: Be Respectful">01 — Be Respectful</option>
+        <option value="02: No Spam">02 — No Spam</option>
+        <option value="03: No NSFW Content">03 — No NSFW Content</option>
+        <option value="04: No Self-Promotion or Advertising">04 — No Self-Promotion or Advertising</option>
+        <option value="05: No Doxxing or Personal Info">05 — No Doxxing or Personal Info</option>
+        <option value="06: Not Following Staff Instructions">06 — Not Following Staff Instructions</option>
+        <option value="07: Ban/Mute Evasion">07 — Ban/Mute Evasion</option>
+        <option value="08: English Only in General">08 — English Only in General</option>
+        <option value="09: Minimodding">09 — Minimodding</option>
+        <option value="other">Other — please explain</option>
+      </select>
     </div>
-    <div class="modal-actions">
+    <div id="mOtherWrap" style="display:none" class="form-group">
+      <label class="form-label">Explain <span style="color:var(--danger)">*</span></label>
+      <textarea class="form-textarea" id="mOtherText" placeholder="Describe what the user did..." style="min-height:72px"
+        oninput="var btn=document.getElementById('mConfirmBtn');if(btn)btn.disabled=this.value.trim().length<3;"></textarea>
+    </div>
+    <div id="mRuleHint"></div>    <div class="modal-actions">
       <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-warn" onclick="confirmWarn('${uid2}','${uname}')">Issue Warning</button>
+      <button class="btn btn-warn" id="mConfirmBtn" disabled onclick="confirmWarn('${uid2}','${uname}')">Issue Warning</button>
     </div>`);
 };
 
 window.confirmWarn = async function(uid2, uname) {
-  const reason = document.getElementById('warnReason')?.value.trim()||'';
+  const reason = getModReason(); if(!reason) return;
   const snap = await getDoc(doc(db,'users',uid2));
   const cnt = (snap.data().warningsCount||0)+1;
   await updateDoc(doc(db,'users',uid2), {
@@ -531,10 +574,148 @@ window.confirmWarn = async function(uid2, uname) {
     punishmentHistory: arrayUnion({ type:'Warn', reason, at:Date.now() }),
     pendingNotifications: arrayUnion({ type:'Warn', reason, issuedBy:email, at:Date.now() })
   });
-  await writeLog(`Warned ${uname} (total: ${cnt})`);
+  await writeLog(`Warned ${uname} — ${reason} (total: ${cnt})`);
   closeModal(); users();
 };
 
+
+function getModReason() {
+  const sel = document.getElementById('mRuleSelect');
+  if (!sel || !sel.value) { alert('Please select a rule.'); return null; }
+  if (sel.value === 'other') {
+    const txt = document.getElementById('mOtherText')?.value.trim();
+    if (!txt || txt.length < 3) { alert('Please explain the reason.'); return null; }
+    return 'Other: ' + txt;
+  }
+  return sel.value;
+}
+
+const PUNISHMENT_GUIDE = {
+  "01: Be Respectful": { label:"Be Respectful", rows:[
+    { severity:"low",      example:"Minor rude comment",              staff:"Warn",         mod:"Warn" },
+    { severity:"medium",   example:"Targeted insults / harassment",   staff:"Warn + Mute 1h", mod:"Warn + Mute" },
+    { severity:"high",     example:"Sustained hate speech / slurs",   staff:"Alert Mod ⚠",  mod:"Temp Ban 24h" },
+  ]},
+  "02: No Spam": { label:"No Spam", rows:[
+    { severity:"low",    example:"Repeated messages",       staff:"Warn",        mod:"Warn" },
+    { severity:"medium", example:"Flooding channel",        staff:"Mute 1h",     mod:"Mute + Warn" },
+    { severity:"high",   example:"Bot spam / raid",         staff:"Alert Mod ⚠", mod:"Temp Ban" },
+  ]},
+  "03: No NSFW Content": { label:"No NSFW Content", rows:[
+    { severity:"medium",  example:"Inappropriate image / link", staff:"Warn + delete",  mod:"Warn + Mute 1h" },
+    { severity:"high",    example:"Explicit content",           staff:"Alert Mod ⚠",    mod:"Temp Ban 24h" },
+    { severity:"critical",example:"CSAM or illegal content",    staff:"Alert Owner 🚨",  mod:"Perm Ban + log" },
+  ]},
+  "04: No Self-Promotion or Advertising": { label:"No Advertising", rows:[
+    { severity:"low",    example:"Casual mention of own project", staff:"Warn",        mod:"Warn" },
+    { severity:"medium", example:"Posting invite links / ads",    staff:"Warn + Mute 1h", mod:"Mute + Warn" },
+    { severity:"high",   example:"Repeated / scam links",         staff:"Alert Mod ⚠", mod:"Temp Ban" },
+  ]},
+  "05: No Doxxing or Personal Info": { label:"No Doxxing", rows:[
+    { severity:"high",    example:"Sharing someone's private info",    staff:"Alert Mod ⚠", mod:"Temp Ban 7d" },
+    { severity:"critical",example:"Coordinated doxxing / threats",     staff:"Alert Mod ⚠", mod:"Perm Ban" },
+  ]},
+  "06: Not Following Staff Instructions": { label:"Not Following Staff", rows:[
+    { severity:"low",    example:"Ignored one warning",          staff:"Warn",        mod:"Warn" },
+    { severity:"medium", example:"Repeatedly ignoring staff",    staff:"Mute 1h",     mod:"Mute + Warn" },
+    { severity:"high",   example:"Openly defying moderation",    staff:"Alert Mod ⚠", mod:"Temp Ban" },
+  ]},
+  "07: Ban/Mute Evasion": { label:"Ban / Mute Evasion", rows:[
+    { severity:"high",    example:"Alt account while muted",  staff:"Alert Mod ⚠", mod:"Temp Ban both accounts" },
+    { severity:"critical",example:"Alt account while banned", staff:"Alert Mod ⚠", mod:"Perm Ban all accounts" },
+  ]},
+  "08: English Only in General": { label:"English Only in General", rows:[
+    { severity:"low",    example:"Occasional non-English",          staff:"Remind",  mod:"Remind" },
+    { severity:"medium", example:"Repeatedly ignoring reminder",    staff:"Warn",    mod:"Warn + Mute 1h" },
+  ]},
+  "09: Minimodding": { label:"Minimodding", rows:[
+    { severity:"low",    example:"Casually calling out users",         staff:"Remind", mod:"Remind" },
+    { severity:"medium", example:"Issuing fake warnings publicly",     staff:"Warn",   mod:"Warn" },
+  ]},
+  "__critical__": { label:"Hacking / Exploiting", rows:[
+    { severity:"critical",example:"Exploiting code / platform bugs",       staff:"Alert Owner 🚨", mod:"Alert Owner 🚨" },
+    { severity:"critical",example:"Attempting to compromise accounts",     staff:"Alert Owner 🚨", mod:"Alert Owner 🚨" },
+  ]}
+};
+const SEV_CONFIG = {
+  low:      { col:"#3fb950", bg:"rgba(63,185,80,.1)",   label:"Low" },
+  medium:   { col:"#d29922", bg:"rgba(210,153,34,.1)",  label:"Medium" },
+  high:     { col:"#f85149", bg:"rgba(248,81,73,.1)",   label:"High" },
+  critical: { col:"#ff00ff", bg:"rgba(255,0,255,.08)",  label:"Critical 🚨" },
+};
+
+function renderGuide(containerId, role) {
+  const wrap = document.getElementById(containerId);
+  if (!wrap) return;
+  const allRules = ["01: Be Respectful","02: No Spam","03: No NSFW Content",
+    "04: No Self-Promotion or Advertising","05: No Doxxing or Personal Info",
+    "06: Not Following Staff Instructions","07: Ban/Mute Evasion",
+    "08: English Only in General","09: Minimodding","__critical__"];
+  wrap.innerHTML = allRules.map(key => {
+    const rule = PUNISHMENT_GUIDE[key]; if(!rule) return '';
+    const isCritical = key === '__critical__';
+    const rowsHtml = rule.rows.map(r => {
+      const s = SEV_CONFIG[r.severity]||SEV_CONFIG.low;
+      const action = role==='staff'?r.staff:r.mod;
+      const isAlert = action.includes('Alert');
+      return `<tr>
+        <td><span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:${s.bg};color:${s.col};font-family:var(--mono);letter-spacing:1px">${s.label}</span></td>
+        <td style="color:var(--text-muted);font-size:12px;padding:6px 14px">${r.example}</td>
+        <td style="font-size:12px;font-weight:600;color:${isAlert?s.col:'var(--text)'};padding:6px 14px">${action}</td>
+      </tr>`;
+    }).join('');
+    return `<div style="background:var(--surface1);border:1px solid ${isCritical?'rgba(255,0,255,.3)':'var(--border)'};border-radius:10px;margin-bottom:12px;overflow:hidden">
+      <div style="padding:10px 14px;background:${isCritical?'rgba(255,0,255,.06)':'var(--surface2)'};border-bottom:1px solid ${isCritical?'rgba(255,0,255,.2)':'var(--border)'};display:flex;align-items:center;gap:8px">
+        ${isCritical?'<span style="color:#ff00ff">🚨</span>':''}
+        <span style="font-size:13px;font-weight:700">${isCritical?'Hacking / Exploiting / Illegal Activity':rule.label}</span>
+        ${isCritical?'<span style="margin-left:auto;font-family:var(--mono);font-size:9px;letter-spacing:1px;color:#ff00ff;background:rgba(255,0,255,.1);border:1px solid rgba(255,0,255,.3);padding:2px 8px;border-radius:10px">ALERT OWNER IMMEDIATELY</span>':''}
+      </div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:6px 14px;font-size:10px;font-family:var(--mono);letter-spacing:1px;color:var(--text-dim);width:110px">SEVERITY</th>
+          <th style="text-align:left;padding:6px 14px;font-size:10px;font-family:var(--mono);letter-spacing:1px;color:var(--text-dim)">EXAMPLE</th>
+          <th style="text-align:left;padding:6px 14px;font-size:10px;font-family:var(--mono);letter-spacing:1px;color:var(--text-dim);width:200px">ACTION</th>
+        </tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+}
+
+function showRuleHint(rule, role) {
+  const wrap = document.getElementById('mRuleHint');
+  if (!wrap) return;
+  const guide = PUNISHMENT_GUIDE[rule];
+  if (!guide) { wrap.innerHTML=''; return; }
+  const html = guide.rows.map(r => {
+    const s = SEV_CONFIG[r.severity]||SEV_CONFIG.low;
+    const action = role==='staff'?r.staff:r.mod;
+    const isAlert = action.includes('Alert Owner');
+    const isAlertMod = action.includes('Alert Mod');
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:10px;font-weight:700;color:${s.col};background:${s.bg};padding:2px 7px;border-radius:8px;font-family:var(--mono);flex-shrink:0">${s.label}</span>
+      <span style="font-size:11px;color:var(--text-muted);flex:1">${r.example}</span>
+      <span style="font-size:11px;font-weight:700;color:${isAlert?'#ff00ff':isAlertMod?'#d29922':'var(--text)'};flex-shrink:0">${action}</span>
+    </div>`;
+  }).join('');
+  wrap.innerHTML = `<div style="margin-top:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px">
+    <div style="font-family:var(--mono);font-size:8px;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:7px">Suggested Action</div>
+    ${html}
+  </div>`;
+}
+
+function guidePanel() {
+  document.getElementById('mainContent').innerHTML = `
+  <div class="panel">
+    <div class="panel-title">📋 Punishment Guide</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:18px;line-height:1.6">
+      Reference for all moderation actions. As Owner you have full access to all punishments.
+      <span style="color:#ff00ff;font-weight:600">Critical</span> offences (hacking/exploiting) should be dealt with immediately.
+    </div>
+    <div id="guideContent"></div>
+  </div>`;
+  renderGuide('guideContent','owner');
+}
 window.removeWarnings = async function(uid2, uname) {
   await updateDoc(doc(db,'users',uid2), { warningsCount:0 });
   await writeLog(`Removed all warnings for ${uname}`);
@@ -553,15 +734,49 @@ window.untempban = async function(uid2, uname) {
   closeModal(); users();
 };
 
-window.permBan = async function(uid2, uname) {
-  if (!confirm(`Permanently ban ${uname}?`)) return;
-  const reason = document.getElementById('mPunishReason')?.value||'';
+window.permBan = function(uid2, uname) {
+  openModal(`<div class="modal-title" style="color:var(--danger)">⛔ Perm Ban: ${uname}</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">This is permanent. You can unban from the user panel.</div>
+    <div class="form-group">
+      <label class="form-label">Rule Broken <span style="color:var(--danger)">*</span></label>
+      <select class="form-select" id="mRuleSelect" onchange="
+        var o=document.getElementById('mOtherWrap');
+        var btn=document.getElementById('mConfirmBtn');
+        if(this.value==='other'){o.style.display='block';btn&&(btn.disabled=true);}
+        else{o.style.display='none';btn&&(btn.disabled=false);}
+        showRuleHint(this.value,'owner');
+      " required>
+        <option value="" disabled selected>Select a rule...</option>
+        <option value="01: Be Respectful">01 — Be Respectful</option>
+        <option value="02: No Spam">02 — No Spam</option>
+        <option value="03: No NSFW Content">03 — No NSFW Content</option>
+        <option value="04: No Self-Promotion or Advertising">04 — No Self-Promotion or Advertising</option>
+        <option value="05: No Doxxing or Personal Info">05 — No Doxxing or Personal Info</option>
+        <option value="06: Not Following Staff Instructions">06 — Not Following Staff Instructions</option>
+        <option value="07: Ban/Mute Evasion">07 — Ban/Mute Evasion</option>
+        <option value="08: English Only in General">08 — English Only in General</option>
+        <option value="09: Minimodding">09 — Minimodding</option>
+        <option value="other">Other — please explain</option>
+      </select>
+    </div>
+    <div id="mOtherWrap" style="display:none" class="form-group">
+      <label class="form-label">Explain <span style="color:var(--danger)">*</span></label>
+      <textarea class="form-textarea" id="mOtherText" placeholder="Describe what the user did..." style="min-height:72px"
+        oninput="var btn=document.getElementById('mConfirmBtn');if(btn)btn.disabled=this.value.trim().length<3;"></textarea>
+    </div>
+    <div id="mRuleHint"></div>    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" id="mConfirmBtn" disabled onclick="confirmPermBan('${uid2}','${uname}')">Permanently Ban</button>
+    </div>`);
+};
+window.confirmPermBan = async function(uid2, uname) {
+  const reason = getModReason(); if(!reason) return;
   await updateDoc(doc(db,'users',uid2), {
     banned:true,
     punishmentHistory: arrayUnion({ type:'Perm Ban', reason, at:Date.now() }),
     pendingNotifications: arrayUnion({ type:'Perm Ban', reason, issuedBy:email, at:Date.now() })
   });
-  await writeLog(`Permanently banned ${uname}`);
+  await writeLog(`Permanently banned ${uname} — ${reason}`);
   closeModal(); users();
 };
 
@@ -575,7 +790,13 @@ window.saveUser = async function(uid2, uname) {
   const newRole  = document.getElementById('mRole').value;
   const muteDur  = document.getElementById('mMuteDur').value;
   const tempDur  = document.getElementById('mTempBan').value;
-  const reason   = document.getElementById('mPunishReason').value.trim();
+  const mutingOrBanning = muteDur || tempDur;
+  const reason   = (()=>{
+    const sel=document.getElementById('mRuleSelect');if(!sel||!sel.value)return'';
+    if(sel.value==='other'){const t=document.getElementById('mOtherText')?.value.trim();return t?'Other: '+t:'';}
+    return sel.value;
+  })();
+  if (mutingOrBanning && !reason) { alert('Please select a rule broken before applying a mute or temp ban.'); return; }
   const updates  = { role: newRole };
   const history  = [];
   if (muteDur) {
