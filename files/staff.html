@@ -74,7 +74,10 @@ const db   = getFirestore(app);
 const uid   = sessionStorage.getItem('nova_uid');
 const email = sessionStorage.getItem('nova_email');
 const role  = sessionStorage.getItem('nova_role');
-if (!uid || role !== 'Staff') { window.location.href = 'index.html'; }
+const simulating = sessionStorage.getItem('nova_simulating');
+const realRole = sessionStorage.getItem('nova_real_role') || role;
+if (!uid || (role !== 'Staff' && !(simulating && ['Owner','Mod'].includes(realRole)))) { window.location.href = 'index.html'; }
+if (simulating) { sessionStorage.setItem('nova_role', realRole); sessionStorage.removeItem('nova_simulating'); }
 
 document.getElementById('userEmail').textContent = email || '—';
 
@@ -193,7 +196,7 @@ const PUNISHMENT_GUIDE = {
   "03": { label:"No NSFW Content", rows:[
     { sev:"medium",   eg:"Inappropriate image or link",     staff:"Warn",             mod:"Warn + Mute 1h" },
     { sev:"high",     eg:"Explicit content",                staff:"Alert Mod ⚠",      mod:"Temp Ban 24h" },
-    { sev:"critical", eg:"CSAM or illegal content",         staff:"Alert Owner 🚨",    mod:"Perm Ban + log" },
+    { sev:"critical", eg:"CSAM or illegal content",         staff:"Alert Mod ⚠",      mod:"Perm Ban + log" },
   ]},
   "04": { label:"No Advertising", rows:[
     { sev:"low",      eg:"Casual mention of own project",   staff:"Warn",             mod:"Warn" },
@@ -222,8 +225,8 @@ const PUNISHMENT_GUIDE = {
     { sev:"medium",   eg:"Issuing fake warnings publicly",  staff:"Warn",             mod:"Warn" },
   ]},
   "__hacking__": { label:"Hacking / Exploiting", rows:[
-    { sev:"critical", eg:"Exploiting platform code or bugs",staff:"Alert Owner 🚨",    mod:"Alert Owner 🚨" },
-    { sev:"critical", eg:"Attempting to compromise accounts",staff:"Alert Owner 🚨",   mod:"Alert Owner 🚨" },
+    { sev:"critical", eg:"Exploiting platform code or bugs",staff:"Alert Mod ⚠ — Mod alerts Owner 🚨", mod:"Perm Ban + Alert Owner 🚨" },
+    { sev:"critical", eg:"Attempting to compromise accounts",staff:"Alert Mod ⚠ — Mod alerts Owner 🚨",mod:"Perm Ban + Alert Owner 🚨" },
   ]},
 };
 

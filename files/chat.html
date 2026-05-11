@@ -886,7 +886,7 @@ onAuthStateChanged(auth, async user => {
   if (settSnap.exists()) {
     const s = settSnap.data();
     if (s.emergency && ME.role !== 'Owner') { showLockoutOverlay('🚨','EMERGENCY SHUTDOWN', s.emergencyMessage||'System locked.'); return; }
-    if (s.maintenance && (ME.role==='Staff'||ME.role==='User')) { showLockoutOverlay('🔧','MAINTENANCE MODE', s.maintenanceMessage||'System under maintenance.'); return; }
+    if (s.maintenance && (effectiveRole()==='Staff'||effectiveRole()==='User')) { showLockoutOverlay('🔧','MAINTENANCE MODE', s.maintenanceMessage||'System under maintenance.'); return; }
     _lastSettings = s;
   }
 
@@ -903,7 +903,7 @@ setTimeout(() => { if (!_authResolved && !auth.currentUser) window.location.href
 
 // ── TOPBAR ────────────────────────────────────────────────
 function setupTopbar() {
-  const r = ME.role; const uname = ME.username||ME.email||'?';
+  const r = effectiveRole(); const uname = ME.username||ME.email||'?';
   const avEl = document.getElementById('topAv');
   avEl.className = `avatar ${avCls(r)}`;
   if (ME.pfp) {
@@ -930,7 +930,18 @@ function roleMsgTag(r) {
   return '';
 }
 
-window.goToDashboard = () => { const routes={Owner:'owner.html',Mod:'mod.html',Staff:'staff.html'}; window.location.href=routes[ME.role]||'chat.html'; };
+window.goToDashboard = () => {
+  const routes={Owner:'owner.html',Mod:'mod.html',Staff:'staff.html'};
+  const dest=effectiveRole();
+  if(dest==='Owner'&&ME.role!=='Owner')return;
+  // If simulating, temporarily write simulated role to sessionStorage so the dashboard accepts it
+  if(_simRole && _simRole !== ME.role){
+    sessionStorage.setItem('nova_simulating','true');
+    sessionStorage.setItem('nova_real_role', ME.role); // save real role so dashboard can restore it
+    sessionStorage.setItem('nova_role', _simRole);
+  }
+  window.location.href=routes[dest]||'chat.html';
+};
 window.doSignOut = async () => { await leaveVoice(); await signOut(auth); sessionStorage.clear(); window.location.href='index.html'; };
 
 // ── SETTINGS WATCHER ─────────────────────────────────────
@@ -942,7 +953,7 @@ function watchSettings() {
     const tag = document.getElementById('voiceModeTag');
     if (tag) { tag.style.display=''; if(voiceMode==='webrtc'){tag.className='voice-mode-tag vmt-webrtc';tag.textContent='WebRTC';}else{tag.className='voice-mode-tag vmt-agora';tag.textContent='Agora';} }
     if (s.emergency && ME.role !== 'Owner') { await leaveVoice(); showLockoutOverlay('🚨','EMERGENCY SHUTDOWN',s.emergencyMessage||'System locked.'); return; }
-    if (s.maintenance && (ME.role==='Staff'||ME.role==='User')) { await leaveVoice(); showLockoutOverlay('🔧','MAINTENANCE MODE',s.maintenanceMessage||'System under maintenance.'); return; }
+    if (s.maintenance && (effectiveRole()==='Staff'||effectiveRole()==='User')) { await leaveVoice(); showLockoutOverlay('🔧','MAINTENANCE MODE',s.maintenanceMessage||'System under maintenance.'); return; }
     const lockout = document.getElementById('_lockoutOverlay'); if (lockout) lockout.remove();
     updateDebugHud(s.debug);
     _lastSettings = s;
@@ -1022,15 +1033,15 @@ async function buildLeft() {
   let html=`<div class="left-section"><div class="left-label">Channels</div>`;
   chans.forEach((c,i)=>{
     const access=c.access||(c.restricted?'staff':'all');
-    if(access==='staff'&&!['Owner','Staff'].includes(ME.role))return;
-    if(access==='mod'&&!['Owner','Mod'].includes(ME.role))return;
-    if(c.restricted&&!['Owner','Mod','Staff'].includes(ME.role))return;
+    if(access==='staff'&&!['Owner','Staff'].includes(effectiveRole()))return;
+    if(access==='mod'&&!['Owner','Mod'].includes(effectiveRole()))return;
+    if(c.restricted&&!['Owner','Mod','Staff'].includes(effectiveRole()))return;
     const icon=c.id==='updates'?'📢':c.id==='mod'?'🛡':c.id==='staff'?'⚡':'#';
     html+=`<div class="chan-item" id="ci-${c.id}" onclick="openChannel('${c.id}')" style="animation-delay:${i*0.04}s"><span class="chan-icon">${icon}</span><span class="chan-name">${esc(c.name||c.id)}</span></div>`;
   });
   html+=`</div><div class="left-section"><div class="left-label">Voice</div>`;
   VOICE_ROOMS.forEach((vr,i)=>{
-    if(vr.restricted&&!['Owner','Mod','Staff'].includes(ME.role))return;
+    if(vr.restricted&&!['Owner','Mod','Staff'].includes(effectiveRole()))return;
     html+=`<div class="voice-item" id="vi-${vr.id}" onclick="joinVoice('${vr.id}','${vr.name}')" style="animation-delay:${(i+5)*0.04}s">
       <div class="voice-item-row"><span class="voice-item-icon">🔊</span><span class="voice-item-name">${vr.name}</span><span class="voice-item-count" id="vpc-${vr.id}"></span></div>
       <div class="voice-part-list" id="vp-${vr.id}"></div>
@@ -1147,7 +1158,7 @@ function setActive(id) {
 function renderRules(){
   const msgArea=document.getElementById('msgArea');
   const inputWrap=document.getElementById('inputWrap');
-  const accepted=ME.rulesAccepted||['Owner','Mod','Staff'].includes(ME.role);
+  const accepted=ME.rulesAccepted||['Owner','Mod','Staff'].includes(effectiveRole());
   inputWrap.innerHTML=accepted
     ?`<div class="readonly-bar" style="color:var(--success)">✅ Rules accepted — you can chat freely</div>`
     :`<div class="readonly-bar">📋 Read all the rules below to unlock chat</div>`;
@@ -1273,7 +1284,7 @@ function renderInput(isGroup=false) {
   if(!currentChan){wrap.innerHTML='';return;}
   const data=currentChan.data;
   if(currentChan.type==='channel'&&data.readonly){
-    if(ME.role==='Owner'){
+    if(effectiveRole()==='Owner'){
       wrap.innerHTML=buildInput(`Message #${data.name||'updates'}`);
       attachInput();
       // Inject "Post Update" shortcut button above input
@@ -1286,7 +1297,7 @@ function renderInput(isGroup=false) {
     return;
   }
   if(ME.banned){wrap.innerHTML=`<div class="input-wrap"><div class="blocked-bar blocked-banned">⛔ You are permanently banned.</div></div>`;return;}
-  if(!ME.rulesAccepted && ME.role==='User'){wrap.innerHTML=`<div class="input-wrap"><div class="blocked-bar" style="background:rgba(88,166,255,.08);border-color:rgba(88,166,255,.25);color:#58a6ff">📋 You must read the rules before chatting — <span style="text-decoration:underline;cursor:pointer;font-weight:700" onclick="openChannel('rules')">Go to #rules</span></div></div>`;return;}
+  if(!ME.rulesAccepted && effectiveRole()==='User'){wrap.innerHTML=`<div class="input-wrap"><div class="blocked-bar" style="background:rgba(88,166,255,.08);border-color:rgba(88,166,255,.25);color:#58a6ff">📋 You must read the rules before chatting — <span style="text-decoration:underline;cursor:pointer;font-weight:700" onclick="openChannel('rules')">Go to #rules</span></div></div>`;return;}
   const now=Date.now();
   if(ME.mutedUntil){
     const until=ME.mutedUntil.seconds?ME.mutedUntil.seconds*1000:new Date(ME.mutedUntil).getTime();
@@ -1331,7 +1342,7 @@ window.sendMsg = async function(){
   else if(currentChan.type==='ticket') { await sendTicketUserMsg2(currentChan.id,text); return; }
   if(!colRef)return;
   await addDoc(colRef,msgData);
-  const everyone=text.toLowerCase().includes('@everyone')&&ME.role==='Owner';
+  const everyone=text.toLowerCase().includes('@everyone')&&effectiveRole()==='Owner';
   if(everyone){
     const usersSnap=await getDocs(collection(db,'users'));
     for(const d of usersSnap.docs)if(d.id!==ME.uid)await updateDoc(doc(db,'users',d.id),{pingCount:increment(1)});
@@ -1365,7 +1376,7 @@ function renderMsgs(docs){
     const isMe=msg.senderUid===ME.uid;
     const myHandle=(ME.username||ME.email||'').toLowerCase();
     const pinged=msg.text&&(msg.text.toLowerCase().includes('@'+myHandle)||msg.text.toLowerCase().includes('@everyone'));
-    const canDel=isMe||ME.role==='Owner'||ME.role==='Mod';
+    const canDel=isMe||effectiveRole()==='Owner'||effectiveRole()==='Mod';
     const delBtn=canDel&&!msg.system?`<button class="mab danger" onclick="deleteMsg('${mid}')">Delete</button>`:'';
     const replyBtn=!msg.system?`<button class="mab" onclick="setReply('${mid}','${escAttr(msg.senderUsername||msg.senderEmail)}','${escAttr((msg.text||'').slice(0,80))}')">Reply</button>`:'';
     // Stacking — same sender within 5 minutes
@@ -1608,9 +1619,9 @@ async function loadMyTickets() {
     const t = d.data();
     const el = t.escalationLevel || 'none';
     // Staff: hide tickets escalated to Mod or Owner
-    if (ME.role === 'Staff' && (el === 'staff_to_mod' || el === 'mod_to_owner')) return false;
+    if (effectiveRole() === 'Staff' && (el === 'staff_to_mod' || el === 'mod_to_owner')) return false;
     // Mod: hide tickets escalated to Owner
-    if (ME.role === 'Mod' && el === 'mod_to_owner') return false;
+    if (effectiveRole() === 'Mod' && el === 'mod_to_owner') return false;
     return true;
   });
   const visible=myTickets.filter(d=>d.data().status!=='closed');
@@ -1811,7 +1822,7 @@ window.startGroupCall=function(){if(!currentChan||currentChan.type!=='group')ret
 
 // ── PROFILE ───────────────────────────────────────────────
 window.openProfile=function(){
-  const r=ME.role;const uname=ME.username||ME.email||'?';
+  const r=effectiveRole();const uname=ME.username||ME.email||'?';
   const avStyle=r==='Owner'?`background:var(--gold-dim);color:var(--gold);border:2px solid var(--gold-border)`:r==='Mod'?`background:rgba(88,166,255,0.18);color:var(--info);border:2px solid rgba(88,166,255,0.35)`:r==='Staff'?`background:rgba(63,185,80,0.18);color:var(--success);border:2px solid rgba(63,185,80,0.35)`:`background:var(--surface2);color:var(--text-muted);border:2px solid var(--border)`;
   const pfpContent=ME.pfp?`<img src="${ME.pfp}" style="width:72px;height:72px;border-radius:50%;object-fit:cover">`:`<div class="pfp-inner" style="${avStyle}">${uname[0].toUpperCase()}</div>`;
   const pings=ME.pingCount||0;
@@ -1855,16 +1866,31 @@ window.saveProfile=async function(){
 // ── DEBUG HUD ─────────────────────────────────────────────
 function updateDebugHud(debugOn){
   const hud=document.getElementById('debugHud');if(!hud)return;
-  const canDebug=ME&&(ME.role==='Owner'||ME.role==='Mod');
+  const canDebug=ME&&(effectiveRole()==='Owner'||effectiveRole()==='Mod');
   hud.style.display=(debugOn&&canDebug)?'block':'none';
 }
 
+// effectiveRole() — use everywhere instead of ME.role directly
+// Returns simulated role when debug sim is active, otherwise real role
+window.effectiveRole=function(){return _simRole||ME?.role||'User';};
+
 window.applySimRole=function(roleVal){
   _simRole=roleVal||null;
-  const el=document.getElementById('hudSimRole');if(el)el.textContent=_simRole||'—';
-  if(!_simRole){setupTopbar();buildLeft();return;}
-  const realRole=ME.role;ME.role=_simRole;
-  setupTopbar();buildLeft().then(()=>{ME.role=realRole;});
+  // Update HUD labels
+  const simEl=document.getElementById('hudSimRole');
+  if(simEl)simEl.textContent=_simRole?`${_simRole} (simulating)`:'None (real role)';
+  const realEl=document.getElementById('hudRealRole');
+  if(realEl)realEl.textContent=ME?.role||'—';
+  // Rebuild everything that depends on role
+  setupTopbar();
+  buildLeft();
+  renderInput();
+  updateMembers();
+  // Re-open current channel/DM to reapply access rules
+  if(currentChan){
+    if(currentChan.type==='channel')openChannel(currentChan.id);
+    else if(currentChan.type==='dm')openDM(currentChan.id);
+  }
 };
 
 // ── MODAL ─────────────────────────────────────────────────

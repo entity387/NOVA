@@ -99,7 +99,11 @@ const db   = getFirestore(app);
 const uid   = sessionStorage.getItem('nova_uid');
 const email = sessionStorage.getItem('nova_email');
 const role  = sessionStorage.getItem('nova_role');
-if (!uid || role !== 'Mod') { window.location.href = 'index.html'; }
+const simulating = sessionStorage.getItem('nova_simulating');
+const realRole = sessionStorage.getItem('nova_real_role') || role;
+if (!uid || (role !== 'Mod' && !(simulating && realRole === 'Owner'))) { window.location.href = 'index.html'; }
+// Restore real role after entering via simulation
+if (simulating) { sessionStorage.setItem('nova_role', realRole); sessionStorage.removeItem('nova_simulating'); }
 
 document.getElementById('userEmail').textContent = email || '—';
 document.getElementById('hudEmail').textContent  = email || '—';
@@ -740,8 +744,8 @@ const PUNISHMENT_GUIDE = {
     { sev:"medium",   eg:"Issuing fake warnings publicly",  staff:"Warn",             mod:"Warn" },
   ]},
   "__hacking__": { label:"Hacking / Exploiting", rows:[
-    { sev:"critical", eg:"Exploiting platform code or bugs",staff:"Alert Owner 🚨",    mod:"Alert Owner 🚨" },
-    { sev:"critical", eg:"Attempting to compromise accounts",staff:"Alert Owner 🚨",   mod:"Alert Owner 🚨" },
+    { sev:"critical", eg:"Exploiting platform code or bugs",staff:"Perm Ban + Alert Owner 🚨",    mod:"Perm Ban + Alert Owner 🚨" },
+    { sev:"critical", eg:"Attempting to compromise accounts",staff:"Perm Ban + Alert Owner 🚨",   mod:"Perm Ban + Alert Owner 🚨" },
   ]},
 };
 
