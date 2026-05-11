@@ -62,6 +62,18 @@
 
 <div id="modalContainer"></div>
 
+<script>
+// Bridge: queue calls until module loads
+(function(){
+  const Q=[];
+  const proxy=n=>function(){Q.push([n,arguments]);};
+  ['showPanel','manageUser','warnUser','confirmWarn','permBan','confirmPermBan',
+   'saveUser','closeModal','showRuleHint','getModReason'].forEach(n=>window[n]=proxy(n));
+  window._modDrain=function(){
+    Q.forEach(([n,a])=>{if(typeof window[n]==='function'&&window[n].toString().indexOf('proxy')===-1)window[n](...a);});
+  };
+})();
+</script>
 <script type="module">
 import { initializeApp }    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -552,17 +564,6 @@ window.manageUser = async function(uid2) {
 };
 
 
-function getModReason() {
-  const sel = document.getElementById('mRuleSelect');
-  if (!sel || !sel.value) { alert('Please select a rule.'); return null; }
-  if (sel.value === 'other') {
-    const txt = document.getElementById('mOtherText')?.value.trim();
-    if (!txt || txt.length < 3) { alert('Please explain the reason.'); return null; }
-    return 'Other: ' + txt;
-  }
-  return sel.value;
-}
-
 window.warnUser = function(uid2, uname) {
   openModal(`<div class="modal-title">⚠️ Warn: ${uname}</div>
     <div class="form-group">
@@ -929,6 +930,8 @@ async function mytickets() {
     </div>`;
 }
 
+overview();
+if(window._modDrain)window._modDrain();
 </script>
 </body>
 </html>
