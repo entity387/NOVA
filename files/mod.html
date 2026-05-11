@@ -509,8 +509,28 @@ window.manageUser = async function(uid2) {
           </select>
         </div>
         <div class="form-group">
-          <div class="form-label">Reason</div>
-          <input class="form-input" id="mPunishReason" placeholder="Optional reason">
+          <div class="form-label">Rule Broken <span style="color:var(--text-dim);font-size:10px">(required for mute/ban)</span></div>
+          <select class="form-select" id="mRuleSelect" onchange="
+            var o=document.getElementById('mOtherWrap');
+            if(this.value==='other')o.style.display='block';
+            else o.style.display='none';
+            showRuleHint(this.value,'mod');">
+            <option value="" disabled selected>Select a rule...</option>
+            <option value="01: Be Respectful">01 — Be Respectful</option>
+            <option value="02: No Spam">02 — No Spam</option>
+            <option value="03: No NSFW Content">03 — No NSFW Content</option>
+            <option value="04: No Self-Promotion or Advertising">04 — No Self-Promotion or Advertising</option>
+            <option value="05: No Doxxing or Personal Info">05 — No Doxxing or Personal Info</option>
+            <option value="06: Not Following Staff Instructions">06 — Not Following Staff Instructions</option>
+            <option value="07: Ban/Mute Evasion">07 — Ban/Mute Evasion</option>
+            <option value="08: English Only in General">08 — English Only in General</option>
+            <option value="09: Minimodding">09 — Minimodding</option>
+            <option value="other">Other — please explain</option>
+          </select>
+          <div id="mOtherWrap" style="display:none;margin-top:8px">
+            <textarea class="form-textarea" id="mOtherText" placeholder="Describe what the user did..." style="min-height:60px"></textarea>
+          </div>
+          <div id="mRuleHint"></div>
         </div>
       </div>
       <div>
