@@ -1866,8 +1866,12 @@ window.saveProfile=async function(){
 // ── DEBUG HUD ─────────────────────────────────────────────
 function updateDebugHud(debugOn){
   const hud=document.getElementById('debugHud');if(!hud)return;
-  const canDebug=ME&&(effectiveRole()==='Owner'||effectiveRole()==='Mod');
+  // Always use REAL role for HUD visibility — don't hide it when simulating a lower role
+  const canDebug=ME&&['Owner','Mod'].includes(ME.role);
   hud.style.display=(debugOn&&canDebug)?'block':'none';
+  // Keep real role label updated
+  const realEl=document.getElementById('hudRealRole');
+  if(realEl)realEl.textContent=ME?.role||'—';
 }
 
 // effectiveRole() — use everywhere instead of ME.role directly
