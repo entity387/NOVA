@@ -488,30 +488,35 @@ window.manageUser = async function(uid2) {
             <option value="2592000000">30 days</option>
           </select>
         </div>
-        <div class="form-group">
-          <div class="form-label">Rule Broken (for mute/temp ban)</div>
-          <select class="form-select" id="mRuleSelect" onchange="
-            var o=document.getElementById('mOtherWrap');
-            if(this.value==='other')o.style.display='block';
-            else o.style.display='none';
-            showRuleHint(this.value,'owner');">
-            <option value="" disabled selected>Select a rule...</option>
-            <option value="01: Be Respectful">01 — Be Respectful</option>
-            <option value="02: No Spam">02 — No Spam</option>
-            <option value="03: No NSFW Content">03 — No NSFW Content</option>
-            <option value="04: No Self-Promotion or Advertising">04 — No Self-Promotion or Advertising</option>
-            <option value="05: No Doxxing or Personal Info">05 — No Doxxing or Personal Info</option>
-            <option value="06: Not Following Staff Instructions">06 — Not Following Staff Instructions</option>
-            <option value="07: Ban/Mute Evasion">07 — Ban/Mute Evasion</option>
-            <option value="08: English Only in General">08 — English Only in General</option>
-            <option value="09: Minimodding">09 — Minimodding</option>
-            <option value="other">Other — please explain</option>
-          </select>
-          <div id="mOtherWrap" style="display:none;margin-top:8px">
-            <textarea class="form-textarea" id="mOtherText" placeholder="Describe what the user did..." style="min-height:60px"></textarea>
-          </div>
-          <div id="mRuleHint"></div>
-        </div>
+                    <div class="form-group">
+              <label class="form-label">Rule Broken <span style="color:var(--danger)">*</span></label>
+              <select class="form-select" id="mRuleSelect" onchange="
+                var sel=this;
+                var o=document.getElementById('mOtherWrap');
+                var btn=document.getElementById('mConfirmBtn');
+                if(sel.value==='other'){o.style.display='block';if(btn)btn.disabled=true;}
+                else{o.style.display='none';if(btn)btn.disabled=false;}
+                showRuleHint(sel.value,'owner');">
+                <option value="" disabled selected>Select a rule...</option>
+                <option value="01">01 — Be Respectful</option>
+                <option value="02">02 — No Spam</option>
+                <option value="03">03 — No NSFW Content</option>
+                <option value="04">04 — No Self-Promotion or Advertising</option>
+                <option value="05">05 — No Doxxing or Personal Info</option>
+                <option value="06">06 — Not Following Staff Instructions</option>
+                <option value="07">07 — Ban/Mute Evasion</option>
+                <option value="08">08 — English Only in General</option>
+                <option value="09">09 — Minimodding</option>
+                <option value="other">Other — please explain</option>
+              </select>
+            </div>
+            <div id="mOtherWrap" style="display:none" class="form-group">
+              <label class="form-label">Explain <span style="color:var(--danger)">*</span></label>
+              <textarea class="form-textarea" id="mOtherText" placeholder="Describe what the user did..." style="min-height:68px"
+                oninput="var btn=document.getElementById('mConfirmBtn');if(btn)btn.disabled=this.value.trim().length<3;"></textarea>
+            </div>
+            <div id="mRuleHint"></div>
+      </div>
       </div>
       <div>
         <div class="form-label" style="margin-bottom:8px">Punishment History</div>
@@ -590,59 +595,133 @@ function getModReason() {
   return sel.value;
 }
 
+
 const PUNISHMENT_GUIDE = {
-  "01: Be Respectful": { label:"Be Respectful", rows:[
-    { severity:"low",      example:"Minor rude comment",              staff:"Warn",         mod:"Warn" },
-    { severity:"medium",   example:"Targeted insults / harassment",   staff:"Warn + Mute 1h", mod:"Warn + Mute" },
-    { severity:"high",     example:"Sustained hate speech / slurs",   staff:"Alert Mod ⚠",  mod:"Temp Ban 24h" },
+  "01": { label:"Be Respectful", rows:[
+    { sev:"low",      eg:"Minor rude comment",              staff:"Warn",             mod:"Warn" },
+    { sev:"medium",   eg:"Targeted insults / harassment",   staff:"Warn + Mute 1h",   mod:"Warn + Mute" },
+    { sev:"high",     eg:"Sustained hate speech / slurs",   staff:"Alert Mod ⚠",      mod:"Temp Ban 24h" },
   ]},
-  "02: No Spam": { label:"No Spam", rows:[
-    { severity:"low",    example:"Repeated messages",       staff:"Warn",        mod:"Warn" },
-    { severity:"medium", example:"Flooding channel",        staff:"Mute 1h",     mod:"Mute + Warn" },
-    { severity:"high",   example:"Bot spam / raid",         staff:"Alert Mod ⚠", mod:"Temp Ban" },
+  "02": { label:"No Spam", rows:[
+    { sev:"low",      eg:"Repeated messages",               staff:"Warn",             mod:"Warn" },
+    { sev:"medium",   eg:"Flooding a channel",              staff:"Mute 1h",          mod:"Mute + Warn" },
+    { sev:"high",     eg:"Bot spam / raid",                 staff:"Alert Mod ⚠",      mod:"Temp Ban" },
   ]},
-  "03: No NSFW Content": { label:"No NSFW Content", rows:[
-    { severity:"medium",  example:"Inappropriate image / link", staff:"Warn + delete",  mod:"Warn + Mute 1h" },
-    { severity:"high",    example:"Explicit content",           staff:"Alert Mod ⚠",    mod:"Temp Ban 24h" },
-    { severity:"critical",example:"CSAM or illegal content",    staff:"Alert Owner 🚨",  mod:"Perm Ban + log" },
+  "03": { label:"No NSFW Content", rows:[
+    { sev:"medium",   eg:"Inappropriate image or link",     staff:"Warn",             mod:"Warn + Mute 1h" },
+    { sev:"high",     eg:"Explicit content",                staff:"Alert Mod ⚠",      mod:"Temp Ban 24h" },
+    { sev:"critical", eg:"CSAM or illegal content",         staff:"Alert Owner 🚨",    mod:"Perm Ban + log" },
   ]},
-  "04: No Self-Promotion or Advertising": { label:"No Advertising", rows:[
-    { severity:"low",    example:"Casual mention of own project", staff:"Warn",        mod:"Warn" },
-    { severity:"medium", example:"Posting invite links / ads",    staff:"Warn + Mute 1h", mod:"Mute + Warn" },
-    { severity:"high",   example:"Repeated / scam links",         staff:"Alert Mod ⚠", mod:"Temp Ban" },
+  "04": { label:"No Advertising", rows:[
+    { sev:"low",      eg:"Casual mention of own project",   staff:"Warn",             mod:"Warn" },
+    { sev:"medium",   eg:"Posting invite links or ads",     staff:"Warn + Mute 1h",   mod:"Mute + Warn" },
+    { sev:"high",     eg:"Repeated or scam links",          staff:"Alert Mod ⚠",      mod:"Temp Ban" },
   ]},
-  "05: No Doxxing or Personal Info": { label:"No Doxxing", rows:[
-    { severity:"high",    example:"Sharing someone's private info",    staff:"Alert Mod ⚠", mod:"Temp Ban 7d" },
-    { severity:"critical",example:"Coordinated doxxing / threats",     staff:"Alert Mod ⚠", mod:"Perm Ban" },
+  "05": { label:"No Doxxing", rows:[
+    { sev:"high",     eg:"Sharing someone's private info",  staff:"Alert Mod ⚠",      mod:"Temp Ban 7d" },
+    { sev:"critical", eg:"Coordinated doxxing or threats",  staff:"Alert Mod ⚠",      mod:"Perm Ban" },
   ]},
-  "06: Not Following Staff Instructions": { label:"Not Following Staff", rows:[
-    { severity:"low",    example:"Ignored one warning",          staff:"Warn",        mod:"Warn" },
-    { severity:"medium", example:"Repeatedly ignoring staff",    staff:"Mute 1h",     mod:"Mute + Warn" },
-    { severity:"high",   example:"Openly defying moderation",    staff:"Alert Mod ⚠", mod:"Temp Ban" },
+  "06": { label:"Not Following Staff", rows:[
+    { sev:"low",      eg:"Ignored one warning",             staff:"Warn",             mod:"Warn" },
+    { sev:"medium",   eg:"Repeatedly ignoring staff",       staff:"Mute 1h",          mod:"Mute + Warn" },
+    { sev:"high",     eg:"Openly defying moderation",       staff:"Alert Mod ⚠",      mod:"Temp Ban" },
   ]},
-  "07: Ban/Mute Evasion": { label:"Ban / Mute Evasion", rows:[
-    { severity:"high",    example:"Alt account while muted",  staff:"Alert Mod ⚠", mod:"Temp Ban both accounts" },
-    { severity:"critical",example:"Alt account while banned", staff:"Alert Mod ⚠", mod:"Perm Ban all accounts" },
+  "07": { label:"Ban / Mute Evasion", rows:[
+    { sev:"high",     eg:"Alt account while muted",         staff:"Alert Mod ⚠",      mod:"Temp Ban both" },
+    { sev:"critical", eg:"Alt account while banned",        staff:"Alert Mod ⚠",      mod:"Perm Ban all accounts" },
   ]},
-  "08: English Only in General": { label:"English Only in General", rows:[
-    { severity:"low",    example:"Occasional non-English",          staff:"Remind",  mod:"Remind" },
-    { severity:"medium", example:"Repeatedly ignoring reminder",    staff:"Warn",    mod:"Warn + Mute 1h" },
+  "08": { label:"English Only in General", rows:[
+    { sev:"low",      eg:"Occasional non-English",          staff:"Remind",           mod:"Remind" },
+    { sev:"medium",   eg:"Repeatedly ignoring reminder",    staff:"Warn",             mod:"Warn + Mute 1h" },
   ]},
-  "09: Minimodding": { label:"Minimodding", rows:[
-    { severity:"low",    example:"Casually calling out users",         staff:"Remind", mod:"Remind" },
-    { severity:"medium", example:"Issuing fake warnings publicly",     staff:"Warn",   mod:"Warn" },
+  "09": { label:"Minimodding", rows:[
+    { sev:"low",      eg:"Casually calling out users",      staff:"Remind",           mod:"Remind" },
+    { sev:"medium",   eg:"Issuing fake warnings publicly",  staff:"Warn",             mod:"Warn" },
   ]},
-  "__critical__": { label:"Hacking / Exploiting", rows:[
-    { severity:"critical",example:"Exploiting code / platform bugs",       staff:"Alert Owner 🚨", mod:"Alert Owner 🚨" },
-    { severity:"critical",example:"Attempting to compromise accounts",     staff:"Alert Owner 🚨", mod:"Alert Owner 🚨" },
-  ]}
+  "__hacking__": { label:"Hacking / Exploiting", rows:[
+    { sev:"critical", eg:"Exploiting platform code or bugs",staff:"Alert Owner 🚨",    mod:"Alert Owner 🚨" },
+    { sev:"critical", eg:"Attempting to compromise accounts",staff:"Alert Owner 🚨",   mod:"Alert Owner 🚨" },
+  ]},
 };
-const SEV_CONFIG = {
-  low:      { col:"#3fb950", bg:"rgba(63,185,80,.1)",   label:"Low" },
-  medium:   { col:"#d29922", bg:"rgba(210,153,34,.1)",  label:"Medium" },
-  high:     { col:"#f85149", bg:"rgba(248,81,73,.1)",   label:"High" },
-  critical: { col:"#ff00ff", bg:"rgba(255,0,255,.08)",  label:"Critical 🚨" },
+
+const SEV_CFG = {
+  low:      { col:"#3fb950", bg:"rgba(63,185,80,.12)",    label:"Low" },
+  medium:   { col:"#d29922", bg:"rgba(210,153,34,.12)",   label:"Medium" },
+  high:     { col:"#f85149", bg:"rgba(248,81,73,.12)",    label:"High" },
+  critical: { col:"#e040fb", bg:"rgba(224,64,251,.1)",    label:"Critical" },
 };
+
+function getModReason() {
+  const sel = document.getElementById('mRuleSelect');
+  if (!sel || !sel.value) { alert('Please select a rule before continuing.'); return null; }
+  if (sel.value === 'other') {
+    const txt = (document.getElementById('mOtherText')?.value||'').trim();
+    if (txt.length < 3) { alert('Please describe the reason (at least 3 characters).'); return null; }
+    return 'Other: ' + txt;
+  }
+  const guide = PUNISHMENT_GUIDE[sel.value];
+  return (guide ? guide.label : sel.value);
+}
+
+function showRuleHint(val, role) {
+  const wrap = document.getElementById('mRuleHint');
+  if (!wrap) return;
+  if (!val || val === 'other') { wrap.innerHTML = ''; return; }
+  const guide = PUNISHMENT_GUIDE[val];
+  if (!guide) { wrap.innerHTML = ''; return; }
+  const rows = guide.rows.map(r => {
+    const s = SEV_CFG[r.sev] || SEV_CFG.low;
+    const action = role === 'staff' ? r.staff : r.mod;
+    const isOwner = action.includes('Owner');
+    const isMod   = action.includes('Mod');
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:10px;font-weight:700;color:${s.col};background:${s.bg};padding:2px 8px;border-radius:8px;font-family:var(--mono);flex-shrink:0;min-width:62px;text-align:center">${s.label}</span>
+      <span style="font-size:11px;color:var(--text-muted);flex:1;line-height:1.4">${r.eg}</span>
+      <span style="font-size:11px;font-weight:700;flex-shrink:0;color:${isOwner?'#e040fb':isMod?'#d29922':'var(--text)'}">${action}</span>
+    </div>`;
+  }).join('');
+  wrap.innerHTML = `<div style="margin-top:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px">
+    <div style="font-family:var(--mono);font-size:8px;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:8px">Rule: ${guide.label}</div>
+    <div style="border-top:1px solid var(--border)">${rows}</div>
+  </div>`;
+}
+
+function renderGuide(containerId, role) {
+  const wrap = document.getElementById(containerId);
+  if (!wrap) return;
+  const keys = ["01","02","03","04","05","06","07","08","09","__hacking__"];
+  wrap.innerHTML = keys.map(key => {
+    const rule = PUNISHMENT_GUIDE[key];
+    if (!rule) return '';
+    const isHack = key === '__hacking__';
+    const rowsHtml = rule.rows.map(r => {
+      const s = SEV_CFG[r.sev] || SEV_CFG.low;
+      const action = role === 'staff' ? r.staff : r.mod;
+      const isOwner = action.includes('Owner');
+      const isMod   = action.includes('Mod');
+      return `<tr>
+        <td style="padding:7px 12px;width:90px"><span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:${s.bg};color:${s.col};font-family:var(--mono)">${s.label}</span></td>
+        <td style="padding:7px 12px;font-size:12px;color:var(--text-muted)">${r.eg}</td>
+        <td style="padding:7px 12px;font-size:12px;font-weight:600;color:${isOwner?'#e040fb':isMod?'#d29922':'var(--text)'}">${action}</td>
+      </tr>`;
+    }).join('');
+    return `<div style="background:var(--surface1);border:1px solid ${isHack?'rgba(224,64,251,.3)':'var(--border)'};border-radius:10px;margin-bottom:12px;overflow:hidden">
+      <div style="padding:10px 14px;background:${isHack?'rgba(224,64,251,.06)':'var(--surface2)'};border-bottom:1px solid ${isHack?'rgba(224,64,251,.2)':'var(--border)'};display:flex;align-items:center;gap:8px">
+        <span style="font-size:13px;font-weight:700">${isHack?'🚨 ':''} ${rule.label}</span>
+        ${isHack?'<span style="margin-left:auto;font-family:var(--mono);font-size:9px;color:#e040fb;background:rgba(224,64,251,.1);border:1px solid rgba(224,64,251,.3);padding:2px 8px;border-radius:10px">ALERT OWNER IMMEDIATELY</span>':''}
+      </div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:6px 12px;font-size:10px;font-family:var(--mono);letter-spacing:1px;color:var(--text-dim);font-weight:600">SEVERITY</th>
+          <th style="text-align:left;padding:6px 12px;font-size:10px;font-family:var(--mono);letter-spacing:1px;color:var(--text-dim);font-weight:600">EXAMPLE</th>
+          <th style="text-align:left;padding:6px 12px;font-size:10px;font-family:var(--mono);letter-spacing:1px;color:var(--text-dim);font-weight:600;width:180px">ACTION</th>
+        </tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+}
+
 
 function renderGuide(containerId, role) {
   const wrap = document.getElementById(containerId);
@@ -709,12 +788,11 @@ function guidePanel() {
   <div class="panel">
     <div class="panel-title">📋 Punishment Guide</div>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:18px;line-height:1.6">
-      Reference for all moderation actions. As Owner you have full access to all punishments.
-      <span style="color:#ff00ff;font-weight:600">Critical</span> offences (hacking/exploiting) should be dealt with immediately.
+      Reference for all punishments. <span style="color:#e040fb;font-weight:600">Critical / hacking</span> requires immediate Owner action.
     </div>
     <div id="guideContent"></div>
   </div>`;
-  renderGuide('guideContent','owner');
+  renderGuide('guideContent', 'mod');
 }
 window.removeWarnings = async function(uid2, uname) {
   await updateDoc(doc(db,'users',uid2), { warningsCount:0 });
