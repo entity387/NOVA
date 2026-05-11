@@ -68,7 +68,7 @@
   const Q=[];
   const proxy=n=>function(){Q.push([n,arguments]);};
   ['showPanel','manageUser','warnUser','confirmWarn','permBan','confirmPermBan',
-   'saveUser','closeModal','showRuleHint','getModReason'].forEach(n=>window[n]=proxy(n));
+   'saveUser','closeModal'].forEach(n=>window[n]=proxy(n));
   window._modDrain=function(){
     Q.forEach(([n,a])=>{if(typeof window[n]==='function'&&window[n].toString().indexOf('proxy')===-1)window[n](...a);});
   };
@@ -764,7 +764,7 @@ function getModReason() {
   return (guide ? guide.label : sel.value);
 }
 
-function showRuleHint(val, role) {
+window.showRuleHint = function showRuleHint(val, role) {
   const wrap = document.getElementById('mRuleHint');
   if (!wrap) return;
   if (!val || val === 'other') { wrap.innerHTML = ''; return; }

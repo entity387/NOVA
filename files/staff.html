@@ -39,6 +39,16 @@
 
 <div id="modalContainer"></div>
 
+<script>
+(function(){
+  const Q=[];
+  const proxy=n=>function(){Q.push([n,arguments]);};
+  ['showPanel','manageUser','warnUser','muteUser','confirmWarn','confirmMute','closeModal'].forEach(n=>window[n]=proxy(n));
+  window._staffDrain=function(){
+    Q.forEach(([n,a])=>{if(typeof window[n]==='function'&&window[n].toString().indexOf('proxy')===-1)window[n](...a);});
+  };
+})();
+</script>
 <script type="module">
 import { initializeApp }    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -236,7 +246,7 @@ function getModReason() {
   return (guide ? guide.label : sel.value);
 }
 
-function showRuleHint(val, role) {
+window.showRuleHint = function showRuleHint(val, role) {
   const wrap = document.getElementById('mRuleHint');
   if (!wrap) return;
   if (!val || val === 'other') { wrap.innerHTML = ''; return; }
@@ -375,6 +385,7 @@ function guidePanel() {
 }
 
 tickets();
+if(window._staffDrain)window._staffDrain();
 };
 
 // Open ticket modal — Staff can only see chat if assigned to them
@@ -555,16 +566,7 @@ async function users() {
 }
 
 
-function getModReason() {
-  const sel = document.getElementById('mRuleSelect');
-  if (!sel || !sel.value) { alert('Please select a rule.'); return null; }
-  if (sel.value === 'other') {
-    const txt = document.getElementById('mOtherText')?.value.trim();
-    if (!txt || txt.length < 3) { alert('Please explain the reason.'); return null; }
-    return 'Other: ' + txt;
-  }
-  return sel.value;
-}
+
 
 window.warnUser = function(uid2, uname) {
   openModal(`<div class="modal-title">⚠️ Warn: ${uname}</div>
