@@ -1036,7 +1036,7 @@ async function buildLeft() {
     if(access==='staff'&&!['Owner','Staff'].includes(effectiveRole()))return;
     if(access==='mod'&&!['Owner','Mod'].includes(effectiveRole()))return;
     if(c.restricted&&!['Owner','Mod','Staff'].includes(effectiveRole()))return;
-    const icon=c.data?.icon||(c.id==='updates'?'📢':c.id==='mod'?'🛡':c.id==='staff'?'⚡':c.id==='rules'?'📋':'#');
+    const icon=c.icon||(c.id==='updates'?'📢':c.id==='mod'?'🛡':c.id==='staff'?'⚡':c.id==='rules'?'📋':'#');
     html+=`<div class="chan-item" id="ci-${c.id}" onclick="openChannel('${c.id}')" style="animation-delay:${i*0.04}s"><span class="chan-icon">${icon}</span><span class="chan-name">${esc(c.name||c.id)}</span></div>`;
   });
   html+=`</div><div class="left-section"><div class="left-label">Voice</div>`;
