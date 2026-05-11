@@ -1229,13 +1229,7 @@ function renderRules(){
   // Inject rule CSS if not already present
   if(!document.getElementById('rulesCss')){
     const st=document.createElement('style');st.id='rulesCss';
-    st.textContent=\`
-      .rule-item{display:flex;gap:16px;margin-bottom:22px;padding-bottom:22px;border-bottom:1px solid var(--border);}
-      .rule-item:last-of-type{border-bottom:none;}
-      .rule-num{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--border);flex-shrink:0;width:32px;padding-top:2px;}
-      .rule-title{font-size:14px;font-weight:700;margin-bottom:5px;}
-      .rule-body{font-size:13px;color:var(--text-muted);line-height:1.6;}
-    \`;
+    st.textContent='.rule-item{display:flex;gap:16px;margin-bottom:22px;padding-bottom:22px;border-bottom:1px solid var(--border);}.rule-item:last-of-type{border-bottom:none;}.rule-num{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--border);flex-shrink:0;width:32px;padding-top:2px;}.rule-title{font-size:14px;font-weight:700;margin-bottom:5px;}.rule-body{font-size:13px;color:var(--text-muted);line-height:1.6;}';
     document.head.appendChild(st);
   }
 
@@ -1268,7 +1262,7 @@ window.acceptRules=async function(){
 function toast(msg,col='var(--accent2)'){
   document.querySelectorAll('._toast').forEach(e=>e.remove());
   const el=document.createElement('div');el.className='_toast';
-  el.style.cssText=\`position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surface1);border:1px solid \${col};border-radius:12px;padding:11px 18px;font-size:13px;font-weight:600;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,.4);color:\${col};font-family:var(--mono);letter-spacing:1px;white-space:nowrap;\`;
+  el.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surface1);border:1px solid '+col+';border-radius:12px;padding:11px 18px;font-size:13px;font-weight:600;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,.4);color:'+col+';font-family:var(--mono);letter-spacing:1px;white-space:nowrap;';
   el.textContent=msg;document.body.appendChild(el);
   setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(()=>el.remove(),300);},3000);
 }
