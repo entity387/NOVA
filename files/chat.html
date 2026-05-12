@@ -236,6 +236,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);display:flex;f
 .chan-item.active .chan-icon{color:var(--accent2);}
 .chan-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .unread-count{background:var(--danger);color:#fff;font-family:var(--mono);font-size:8px;padding:1px 5px;border-radius:8px;flex-shrink:0;animation:ping 2s ease infinite;}
+.chan-ping-dot{width:8px;height:8px;border-radius:50%;background:var(--danger);flex-shrink:0;margin-left:auto;animation:ping 2s ease infinite;}
 
 /* ── VOICE ITEMS ─────────────────────────────────────────── */
 .voice-item{padding:5px 12px;margin:1px 6px;border-radius:var(--radius-sm);cursor:pointer;transition:all var(--transition);}
@@ -995,11 +996,13 @@ function watchMyProfile() {
       for (const n of pending) showModerationNotification(n);
       await updateDoc(doc(db,'users',ME.uid),{pendingNotifications:[]});
     }
-    ME.pingCount=data.pingCount||0; ME.mutedUntil=data.mutedUntil; ME.banned=data.banned; ME.rulesAccepted=data.rulesAccepted||false;
+    ME.pingCount=data.pingCount||0; ME.pingChannels=data.pingChannels||{}; ME.mutedUntil=data.mutedUntil; ME.banned=data.banned; ME.rulesAccepted=data.rulesAccepted||false;
     ME.pfp=data.pfp||''; ME.username=data.username||ME.email.split('@')[0];
     if (currentChan) renderInput(currentChan.type==='group');
     const badge = document.getElementById('pingBadge');
     if (badge) { if(ME.pingCount>0){badge.style.display='flex';badge.textContent=ME.pingCount>99?'99+':ME.pingCount;}else badge.style.display='none'; }
+    // Refresh channel dots in sidebar
+    if(ME.pingChannels){Object.entries(ME.pingChannels).forEach(([cid,cnt])=>{const item=document.getElementById('ci-'+cid);if(!item)return;const existing=item.querySelector('.chan-ping-dot');if(cnt>0&&!existing){const dot=document.createElement('span');dot.className='chan-ping-dot';item.appendChild(dot);}else if(cnt<=0&&existing)existing.remove();});}
   });
 }
 
@@ -1057,7 +1060,8 @@ async function buildLeft() {
     if(access==='mod'&&!['Owner','Mod'].includes(effectiveRole()))return;
     if(c.restricted&&!['Owner','Mod','Staff'].includes(effectiveRole()))return;
     const icon=c.icon||(c.id==='updates'?'📢':c.id==='mod'?'🛡':c.id==='staff'?'⚡':c.id==='rules'?'📋':'#');
-    html+=`<div class="chan-item" id="ci-${c.id}" onclick="openChannel('${c.id}')" style="animation-delay:${i*0.04}s"><span class="chan-icon">${icon}</span><span class="chan-name">${esc(c.name||c.id)}</span></div>`;
+    const hasPing=(ME.pingChannels&&(ME.pingChannels[c.id]||0)>0);
+    html+=`<div class="chan-item" id="ci-${c.id}" onclick="openChannel('${c.id}')" style="animation-delay:${i*0.04}s"><span class="chan-icon">${icon}</span><span class="chan-name">${esc(c.name||c.id)}</span>${hasPing?'<span class="chan-ping-dot"></span>':''}</div>`;
   });
   html+=`</div><div class="left-section"><div class="left-label">Voice</div>`;
   VOICE_ROOMS.forEach((vr,i)=>{
@@ -1106,6 +1110,19 @@ window.openChannel = async function(chanId) {
   document.getElementById('chanDesc').textContent=data.desc?'— '+data.desc:'';
   document.getElementById('chanReadonlyTag').style.display=data.readonly?'':'none';
   if(chanId==='rules'){renderRules();updateMembers();return;}
+  // Clear ping for this channel
+  if(ME.pingChannels&&ME.pingChannels[chanId]){
+    const cleared=ME.pingChannels[chanId]||0;
+    ME.pingChannels[chanId]=0;
+    ME.pingCount=Math.max(0,(ME.pingCount||0)-cleared);
+    updateDoc(doc(db,'users',ME.uid),{['pingChannels.'+chanId]:0,pingCount:Math.max(0,(ME.pingCount||0))}).catch(()=>{});
+    // Remove dot from sidebar
+    const item=document.getElementById('ci-'+chanId);
+    if(item){const dot=item.querySelector('.chan-ping-dot');if(dot)dot.remove();}
+    // Update topbar badge
+    const badge=document.getElementById('pingBadge');
+    if(badge){if(ME.pingCount>0){badge.style.display='flex';badge.textContent=ME.pingCount>99?'99+':ME.pingCount;}else badge.style.display='none';}
+  }
   renderInput(); updateMembers();
   showSkeletonLoader();
   const q=query(collection(db,'channels',chanId,'messages'),orderBy('timestamp','asc'),limit(100));
@@ -1360,13 +1377,19 @@ window.sendMsg = async function(){
   const everyone=text.toLowerCase().includes('@everyone')&&effectiveRole()==='Owner';
   if(everyone){
     const usersSnap=await getDocs(collection(db,'users'));
-    for(const d of usersSnap.docs)if(d.id!==ME.uid)await updateDoc(doc(db,'users',d.id),{pingCount:increment(1)});
+    for(const d of usersSnap.docs)if(d.id!==ME.uid){
+      const chanKey='pingChannels.'+currentChan.id;
+      await updateDoc(doc(db,'users',d.id),{pingCount:increment(1),[chanKey]:increment(1)});
+    }
   }else{
     const rx=/@(\w+)/g;let m;
     while((m=rx.exec(text))!==null){
       const h=m[1].toLowerCase();
       const target=Object.values(allUsers).find(u=>(u.username||u.email||'').toLowerCase().startsWith(h));
-      if(target&&target.uid!==ME.uid)await updateDoc(doc(db,'users',target.uid),{pingCount:increment(1)});
+      if(target&&target.uid!==ME.uid){
+        const chanKey='pingChannels.'+currentChan.id;
+        await updateDoc(doc(db,'users',target.uid),{pingCount:increment(1),[chanKey]:increment(1)});
+      }
     }
   }
 };
