@@ -808,7 +808,18 @@ let ticketUnsubscribers = [];
 
 // ── THEME SYSTEM ──────────────────────────────────────────
 window.setTheme = function setTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
+  if (theme === 'flashbang') {
+    // Kill all transitions so it's instant — no fade, just BAM
+    const style = document.createElement('style');
+    style.id = '_noTrans';
+    style.textContent = '* { transition: none !important; }';
+    document.head.appendChild(style);
+    document.documentElement.setAttribute('data-theme', theme);
+    // Remove the style block after a frame so future transitions work again
+    requestAnimationFrame(() => { document.getElementById('_noTrans')?.remove(); });
+  } else {
+    document.documentElement.setAttribute('data-theme', theme);
+  }
   document.querySelectorAll('.theme-option').forEach(el => {
     el.classList.toggle('active', el.dataset.theme === theme);
   });
