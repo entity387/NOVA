@@ -1307,11 +1307,6 @@ function renderInput(isGroup=false) {
     if(effectiveRole()==='Owner'){
       wrap.innerHTML=buildInput(`Message #${data.name||'updates'}`);
       attachInput();
-      // Inject "Post Update" shortcut button above input
-      const shortcut = document.createElement('div');
-      shortcut.style.cssText='padding:6px 14px 0;display:flex;gap:6px;align-items:center;flex-wrap:wrap;';
-      shortcut.innerHTML=`<button onclick="prefillUpdate()" style="background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.4);color:#a855f7;font-size:11px;font-family:var(--mono);letter-spacing:1px;padding:4px 11px;border-radius:20px;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(124,58,237,.3)'" onmouseout="this.style.background='rgba(124,58,237,.15)'">📋 Paste Update Message</button>`;
-      wrap.prepend(shortcut);
     }
     else wrap.innerHTML=`<div class="readonly-bar">📢 This channel is read-only</div>`;
     return;
