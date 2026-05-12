@@ -25,6 +25,14 @@
   --spring:0.35s cubic-bezier(0.34,1.56,0.64,1);
   --mono:'Share Tech Mono',monospace;--ui:'Inter',sans-serif;
 }
+[data-theme="flashbang"]{
+  --bg:#ffffff;--surface1:#ffffff;--surface2:#ffffff;--surface-glass:rgba(255,255,255,0.98);
+  --border:#ffffff;--text:#ffffff;--text-muted:#ffffff;--text-dim:#ffffff;
+  --accent:#ffffff;--accent2:#ffffff;--glow:rgba(255,255,255,1);--glow2:rgba(255,255,255,1);
+  --danger:#ffffff;--success:#ffffff;--warn:#ffffff;
+}
+[data-theme="flashbang"] *{color:#fff!important;background-color:#fff!important;border-color:#fff!important;box-shadow:none!important;text-shadow:none!important;}
+[data-theme="flashbang"] body{background:#fff!important;}
 [data-theme="neon"]{
   --bg:#050508;--bg2:#07070c;--surface:#0a0a12;--surface2:#10101c;--surface3:#16162a;
   --glass:rgba(10,10,18,0.8);--glass2:rgba(16,16,28,0.85);
@@ -684,6 +692,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);display:flex;f
       <div class="theme-option" data-theme="forest"><div class="theme-swatch" style="background:linear-gradient(135deg,#22c55e,#d97706)"></div>Forest</div>
       <div class="theme-option" data-theme="sunset"><div class="theme-swatch" style="background:linear-gradient(135deg,#f97316,#8b5cf6)"></div>Sunset</div>
       <div class="theme-option" data-theme="light"><div class="theme-swatch" style="background:linear-gradient(135deg,#6d28d9,#8b5cf6);border:1px solid #e2e8f0"></div>Light</div>
+      <div class="theme-option" data-theme="flashbang"><div class="theme-swatch" style="background:#fff;border:2px solid #ddd"></div>💥 Flashbang</div>
     </div>
     <div class="user-info" onclick="openProfile()">
       <div class="avatar av-user" id="topAv">
@@ -780,7 +789,7 @@ const VOICE_ROOMS = [
   { id:'voice-meetings',name:'Meetings',        restricted:true  },
 ];
 
-const THEMES = ['midnight','neon','ocean','forest','sunset','light'];
+const THEMES = ['midnight','neon','ocean','forest','sunset','light','flashbang'];
 
 let ME = null;
 let allUsers = {};
