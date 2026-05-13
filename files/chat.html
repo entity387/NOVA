@@ -993,7 +993,7 @@ function setupTopbar() {
   else if (r==='Mod')   { rb.style.display=''; rb.className='role-badge rb-mod';   rb.textContent='🛡 Mod'; }
   else if (r==='Staff') { rb.style.display=''; rb.className='role-badge rb-staff'; rb.textContent='⚡ Staff'; }
   else rb.style.display = 'none';
-  if (['Owner','Mod','Staff'].includes(r)) document.getElementById('dashBtn').style.display='';
+  if (['Owner','Senior Mod','Mod','Staff'].includes(r)) document.getElementById('dashBtn').style.display='';
   document.getElementById('hudRealRole').textContent = r;
   document.getElementById('hudEmail').textContent = ME.email||'—';
 }
@@ -1008,7 +1008,7 @@ function roleMsgTag(r) {
 }
 
 window.goToDashboard = () => {
-  const routes={Owner:'owner.html',Mod:'mod.html',Staff:'staff.html'};
+  const routes={Owner:'owner.html','Senior Mod':'mod.html',Mod:'mod.html',Staff:'staff.html'};
   const dest=effectiveRole();
   if(dest==='Owner'&&ME.role!=='Owner')return;
   // If simulating, temporarily write simulated role to sessionStorage so the dashboard accepts it
