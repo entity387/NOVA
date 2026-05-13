@@ -171,13 +171,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);display:flex;f
   animation:ping 1s ease infinite;
 }
 .av-owner{background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-border);}
-.av-senior{background:rgba(32,178,170,.18);color:#20b2aa;border:1px solid rgba(32,178,170,.35);}
-.rb-senior{background:rgba(32,178,170,.15);color:#20b2aa;border:1px solid rgba(32,178,170,.3);}
+.av-senior{background:rgba(20,184,166,.18);color:#14b8a6;border:1px solid rgba(20,184,166,.4);}
+.rb-senior{background:rgba(20,184,166,.15);color:#14b8a6;border:1px solid rgba(20,184,166,.35);}
 .av-mod{background:rgba(88,166,255,0.18);color:var(--info);border:1px solid rgba(88,166,255,0.3);}
 .av-staff{background:rgba(63,185,80,0.18);color:var(--success);border:1px solid rgba(63,185,80,0.3);}
 .av-user{background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);}
 .role-badge{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;padding:2px 8px;border-radius:20px;text-transform:uppercase;display:inline-flex;align-items:center;gap:3px;}
 .rb-owner{background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-border);}
+.rb-senior{background:rgba(20,184,166,.15);color:#14b8a6;border:1px solid rgba(20,184,166,.35);}
 .rb-mod{background:rgba(88,166,255,0.15);color:var(--info);border:1px solid rgba(88,166,255,0.3);}
 .rb-staff{background:rgba(63,185,80,0.15);color:var(--success);border:1px solid rgba(63,185,80,0.3);}
 .username-display{font-size:13px;font-weight:600;}
@@ -316,6 +317,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);display:flex;f
 .msg-author.user{color:var(--text);}
 .msg-role-tag{font-family:var(--mono);font-size:8px;padding:1px 6px;border-radius:20px;text-transform:uppercase;}
 .rb-owner{background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-border);}
+.rb-senior{background:rgba(20,184,166,.15);color:#14b8a6;border:1px solid rgba(20,184,166,.35);}
 .rb-mod{background:rgba(88,166,255,0.15);color:var(--info);border:1px solid rgba(88,166,255,0.3);}
 .rb-staff{background:rgba(63,185,80,0.15);color:var(--success);border:1px solid rgba(63,185,80,0.3);}
 .msg-time{font-family:var(--mono);font-size:9px;color:var(--text-dim);}
@@ -987,7 +989,7 @@ function setupTopbar() {
   document.getElementById('topUsername').textContent = uname;
   const rb = document.getElementById('topRoleBadge');
   if (r==='Owner')      { rb.style.display=''; rb.className='role-badge rb-owner';  rb.textContent='👑 Owner'; }
-  else if (r==='Senior Mod'){ rb.style.display=''; rb.className='role-badge rb-senior'; rb.textContent='🔰 Senior Mod'; }
+  else if (r==='Senior Mod'){ rb.style.display=''; rb.className='role-badge rb-senior'; rb.textContent='✦ Senior Mod'; }
   else if (r==='Mod')   { rb.style.display=''; rb.className='role-badge rb-mod';   rb.textContent='🛡 Mod'; }
   else if (r==='Staff') { rb.style.display=''; rb.className='role-badge rb-staff'; rb.textContent='⚡ Staff'; }
   else rb.style.display = 'none';
@@ -999,7 +1001,7 @@ function setupTopbar() {
 function avCls(r) { return r==='Owner'?'av-owner':r==='Senior Mod'?'av-senior':r==='Mod'?'av-mod':r==='Staff'?'av-staff':'av-user'; }
 function roleMsgTag(r) {
   if (r==='Owner')      return `<span class="msg-role-tag rb-owner">👑 Owner</span>`;
-  if (r==='Senior Mod') return `<span class="msg-role-tag rb-senior">🔰 Senior Mod</span>`;
+  if (r==='Senior Mod') return `<span class="msg-role-tag rb-senior">✦ Senior Mod</span>`;
   if (r==='Mod')        return `<span class="msg-role-tag rb-mod">🛡 Mod</span>`;
   if (r==='Staff')      return `<span class="msg-role-tag rb-staff">⚡ Staff</span>`;
   return '';
