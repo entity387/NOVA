@@ -1157,7 +1157,7 @@ async function ensureChannels() {
     {id:'mod',    name:'mod',    desc:'Mod team channel',restricted:true,readonly:false,access:'mod'},
     {id:'rules',      name:'rules',      desc:'Read the rules before chatting',restricted:false,readonly:true,access:'all'},
     {id:'hierarchy',  name:'hierarchy',  desc:'Roles and staff structure',     restricted:false,readonly:true,access:'all'},
-    {id:'applications',name:'applications',desc:'Staff applications',          restricted:true, readonly:false,access:'staff'},
+    {id:'applications',name:'applications',desc:'Staff applications',          restricted:false,readonly:true, access:'all'},
   ]){
     const s=await getDoc(doc(db,'channels',ch.id));
     if(!s.exists()) await setDoc(doc(db,'channels',ch.id),{...ch,createdAt:Date.now()});
@@ -1265,7 +1265,7 @@ function setActive(id) {
 
 // ── RULES ─────────────────────────────────────────────────
 function renderRules(){
-  const msgArea=document.getElementById('msgArea');
+  const msgArea=document.getElementById('messagesArea');
   const inputWrap=document.getElementById('inputWrap');
   const accepted=ME.rulesAccepted||['Owner','Senior Mod','Mod','Staff'].includes(effectiveRole());
   inputWrap.innerHTML=accepted
@@ -1381,7 +1381,7 @@ window.acceptRules=async function(){
 
 // ── HIERARCHY ──────────────────────────────────────────────
 function renderHierarchy(){
-  const msgArea=document.getElementById('msgArea');
+  const msgArea=document.getElementById('messagesArea');
   const inputWrap=document.getElementById('inputWrap');
   inputWrap.innerHTML=`<div class="readonly-bar">👑 Staff structure — read only</div>`;
 
@@ -1439,16 +1439,26 @@ function renderHierarchy(){
 
 
 // ── STAFF APPLICATIONS ─────────────────────────────────────
-function renderApplications(){
-  const msgArea=document.getElementById('msgArea');
+async function renderApplications(){
+  const msgArea=document.getElementById('messagesArea');
   const inputWrap=document.getElementById('inputWrap');
   const role=effectiveRole();
   const isStaff=['Owner','Senior Mod','Mod','Staff'].includes(role);
 
-  // Staff+ see the applications list, users see the apply form
+  // Check if applications are closed
+  const settSnap=await getDoc(doc(db,'settings','global'));
+  const appsClosed=settSnap.exists()&&settSnap.data().applicationsClosed;
+
   if(isStaff){
-    inputWrap.innerHTML=`<div class="readonly-bar">📝 Staff Applications — review panel</div>`;
+    inputWrap.innerHTML=`<div class="readonly-bar" style="${appsClosed?'color:var(--danger)':''}">📝 Staff Applications — ${appsClosed?'⛔ Currently Closed':'Open'}</div>`;
     loadApplicationsList(msgArea);
+  } else if(appsClosed){
+    inputWrap.innerHTML=`<div class="readonly-bar">📝 Applications</div>`;
+    msgArea.innerHTML=`<div style="max-width:480px;margin:80px auto;text-align:center;padding:24px">
+      <div style="font-size:44px;margin-bottom:16px">🔒</div>
+      <div style="font-family:var(--mono);font-size:14px;letter-spacing:2px;margin-bottom:10px">Applications Closed</div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.6">We're not currently accepting staff applications. Check back later.</div>
+    </div>`;
   } else {
     inputWrap.innerHTML=`<div class="readonly-bar">📝 Apply for a Staff position below</div>`;
     renderApplyForm(msgArea);
@@ -1549,7 +1559,7 @@ window.submitApplication=async function(){
       age,timezone,activity,why,experience,scenario,extra,
       status:'pending',timestamp:Date.now()
     });
-    document.getElementById('msgArea').innerHTML=`<div style="max-width:480px;margin:60px auto;text-align:center;padding:24px">
+    document.getElementById('messagesArea').innerHTML=`<div style="max-width:480px;margin:60px auto;text-align:center;padding:24px">
       <div style="font-size:44px;margin-bottom:16px">📨</div>
       <div style="font-family:var(--mono);font-size:14px;letter-spacing:2px;margin-bottom:10px">Application Submitted!</div>
       <div style="font-size:13px;color:var(--text-muted);line-height:1.6">Your application has been received and will be reviewed by our team. We'll let you know the outcome via a ticket.</div>
@@ -1565,10 +1575,16 @@ window.reviewApplication=async function(aid,status,uid,username){
   if(status==='accepted'&&uid){
     // Promote to Staff
     await updateDoc(doc(db,'users',uid),{role:'Staff'});
+    // Welcome message in #staff channel
+    await addDoc(collection(db,'channels','staff','messages'),{
+      text:`⚡ Welcome to the team, @${username}!\n\nYour staff application has been accepted. You now have access to the Staff Dashboard where you can manage tickets, warn and mute users, and escalate issues to Mods.\n\nIf you have any questions reach out to a Mod or the Owner. Welcome aboard! — NOVA Team`,
+      senderUid:'system',senderEmail:'NOVA System',senderUsername:'NOVA System',senderRole:'System',
+      timestamp:Date.now(),system:true,
+    });
     // Notify via ticket
     await addDoc(collection(db,'tickets'),{
       subject:'Staff Application Accepted 🎉',
-      message:`Congratulations ${username}! Your staff application has been accepted. Welcome to the team! Check out #staff for next steps.`,
+      message:`Congratulations ${username}! Your staff application has been accepted. Welcome to the NOVA team! Head over to #staff to get started.`,
       priority:'high',category:'general',
       createdBy:ME.email,createdByUid:ME.uid,createdByUsername:ME.username||ME.email,
       assignedTo:'',status:'open',timestamp:Date.now(),
@@ -1588,6 +1604,13 @@ window.reviewApplication=async function(aid,status,uid,username){
   }
   openChannel('applications');
 };
+
+// Global timestamp formatter used by applications/alerts panels
+function ts(ms){
+  if(!ms)return'—';
+  const d=new Date(ms);
+  return d.toLocaleDateString([],{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
 
 function toast(msg,col='var(--accent2)'){
   document.querySelectorAll('._toast').forEach(e=>e.remove());

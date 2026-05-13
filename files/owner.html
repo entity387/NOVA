@@ -685,9 +685,15 @@ window.ownerReviewApp = async function(aid, status, uid, username) {
   await updateDoc(doc(db,'applications',aid), {status, reviewedBy:email, reviewedAt:Date.now()});
   if(status==='accepted' && uid) {
     await updateDoc(doc(db,'users',uid), {role:'Staff'});
+    // Welcome message in #staff channel
+    await addDoc(collection(db,'channels','staff','messages'),{
+      text:`⚡ Welcome to the team, @${username}!\n\nYour staff application has been accepted. You now have access to the Staff Dashboard where you can manage tickets, warn and mute users, and escalate issues to Mods.\n\nIf you have any questions reach out to a Mod or the Owner. Welcome aboard! — NOVA Team`,
+      senderUid:'system',senderEmail:'NOVA System',senderUsername:'NOVA System',senderRole:'System',
+      timestamp:Date.now(),system:true,
+    });
     await addDoc(collection(db,'tickets'),{
       subject:'Staff Application Accepted 🎉',
-      message:`Congratulations ${username}! Your staff application has been accepted. Welcome to the NOVA team! Check out #staff for next steps.`,
+      message:`Congratulations ${username}! Your staff application has been accepted. Welcome to the NOVA team! Head over to #staff to get started.`,
       priority:'high',category:'general',
       createdBy:email,createdByUid:'owner',createdByUsername:'NOVA Team',
       assignedTo:'',status:'open',timestamp:Date.now(),
@@ -1083,6 +1089,7 @@ async function settings() {
       <div class="toggle-row"><div><div class="toggle-label">Debug Mode</div><div class="toggle-desc">Requires maintenance mode.</div></div><label class="toggle"><input type="checkbox" ${s.debug?'checked':''} ${!s.maintenance?'disabled':''} onchange="saveSetting('debug',this.checked)"><span class="toggle-slider"></span></label></div>
       <div class="toggle-row"><div><div class="toggle-label">Force WebRTC Fallback</div><div class="toggle-desc">Disables Agora, uses WebRTC (6 person cap).</div></div><label class="toggle"><input type="checkbox" ${s.voiceMode==='webrtc'?'checked':''} onchange="saveSetting('voiceMode',this.checked?'webrtc':'agora')"><span class="toggle-slider"></span></label></div>
       <div class="toggle-row"><div><div class="toggle-label">🕹 Disable Arcade</div><div class="toggle-desc">Blocks all users from accessing the arcade.</div></div><label class="toggle"><input type="checkbox" ${s.arcadeDisabled?'checked':''} onchange="saveSetting('arcadeDisabled',this.checked)"><span class="toggle-slider"></span></label></div>
+      <div class="toggle-row"><div><div class="toggle-label">📝 Close Applications</div><div class="toggle-desc">Stops users from submitting new staff applications.</div></div><label class="toggle"><input type="checkbox" ${s.applicationsClosed?'checked':''} onchange="saveSetting('applicationsClosed',this.checked)"><span class="toggle-slider"></span></label></div>
       <div class="toggle-row" style="border:1px solid rgba(248,81,73,.2);border-radius:8px;padding:10px 12px;background:rgba(248,81,73,.04)"><div><div class="toggle-label" style="color:var(--danger)">🔒 Emergency Lockdown</div><div class="toggle-desc">Blocks everyone except Owner and Senior Mods. Sends an email alert when triggered.</div></div><label class="toggle"><input type="checkbox" ${s.emergency?'checked':''} onchange="toggleLockdown(this.checked)"><span class="toggle-slider"></span></label></div>
     </div>
     <div class="mb-20"></div>
