@@ -77,6 +77,7 @@
   };
 })();
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script type="module">
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -474,10 +475,11 @@ window.manageUser = async function(uid2) {
         <div class="form-group">
           <div class="form-label">Role</div>
           <select class="form-select" id="mRole">
-            <option value="User"  ${u.role==='User'?'selected':''}>User</option>
-            <option value="Staff" ${u.role==='Staff'?'selected':''}>⚡ Staff</option>
-            <option value="Mod"   ${u.role==='Mod'?'selected':''}>🛡 Mod</option>
-            <option value="Owner" ${u.role==='Owner'?'selected':''}>👑 Owner</option>
+            <option value="User"       ${u.role==='User'?'selected':''}>User</option>
+            <option value="Staff"      ${u.role==='Staff'?'selected':''}>⚡ Staff</option>
+            <option value="Mod"        ${u.role==='Mod'?'selected':''}>🛡 Mod</option>
+            <option value="Senior Mod" ${u.role==='Senior Mod'?'selected':''}>🔰 Senior Mod</option>
+            <option value="Owner"      ${u.role==='Owner'?'selected':''}>👑 Owner</option>
           </select>
         </div>
         <div class="form-group">
@@ -595,6 +597,28 @@ window.confirmWarn = async function(uid2, uname) {
 
 
 
+
+
+// ── EMAIL ALERTS ─────────────────────────────────────────
+const EMAILJS_SERVICE  = 'service_tk338nf';
+const EMAILJS_TEMPLATE = 'template_tqg0gnq';
+const EMAILJS_KEY      = 'G7xmtT6VrVzxi1rfJ';
+const ALERT_EMAILS     = ['rhys.doughty@pgs.vic.edu.au','rhys97337@gmail.com'];
+async function sendAlert(subject, body) {
+  if(!window.emailjs)return;
+  const alerts = [
+    { service:'service_tk338nf', email:'rhys.doughty@pgs.vic.edu.au' },
+    { service:'service_xvsbbbr',  email:'rhys97337@gmail.com' },
+  ];
+  for(const a of alerts){
+    emailjs.send(a.service, 'template_tqg0gnq', {
+      to_email:   a.email,
+      subject:    '🚨 NOVA Alert: ' + subject,
+      body:       body + '\n\n---\nSent from NOVA at ' + new Date().toLocaleString(),
+      from_name:  'NOVA Security'
+    }, 'G7xmtT6VrVzxi1rfJ').catch(e=>console.warn('Alert failed for '+a.email, e));
+  }
+}
 
 
 const PUNISHMENT_GUIDE = {
@@ -971,6 +995,7 @@ async function settings() {
       <div class="toggle-row"><div><div class="toggle-label">Debug Mode</div><div class="toggle-desc">Requires maintenance mode.</div></div><label class="toggle"><input type="checkbox" ${s.debug?'checked':''} ${!s.maintenance?'disabled':''} onchange="saveSetting('debug',this.checked)"><span class="toggle-slider"></span></label></div>
       <div class="toggle-row"><div><div class="toggle-label">Force WebRTC Fallback</div><div class="toggle-desc">Disables Agora, uses WebRTC (6 person cap).</div></div><label class="toggle"><input type="checkbox" ${s.voiceMode==='webrtc'?'checked':''} onchange="saveSetting('voiceMode',this.checked?'webrtc':'agora')"><span class="toggle-slider"></span></label></div>
       <div class="toggle-row"><div><div class="toggle-label">🕹 Disable Arcade</div><div class="toggle-desc">Blocks all users from accessing the arcade.</div></div><label class="toggle"><input type="checkbox" ${s.arcadeDisabled?'checked':''} onchange="saveSetting('arcadeDisabled',this.checked)"><span class="toggle-slider"></span></label></div>
+      <div class="toggle-row" style="border:1px solid rgba(248,81,73,.2);border-radius:8px;padding:10px 12px;background:rgba(248,81,73,.04)"><div><div class="toggle-label" style="color:var(--danger)">🔒 Lockdown Mode</div><div class="toggle-desc">Locks out all users below Senior Mod. Sends you an email alert when triggered by anyone.</div></div><label class="toggle"><input type="checkbox" ${s.emergency?'checked':''} onchange="toggleLockdown(this.checked)"><span class="toggle-slider"></span></label></div>
     </div>
     <div class="mb-20"></div>
     <div class="card">

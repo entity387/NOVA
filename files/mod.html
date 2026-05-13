@@ -74,6 +74,7 @@
   };
 })();
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script type="module">
 import { initializeApp }    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -101,7 +102,7 @@ const email = sessionStorage.getItem('nova_email');
 const role  = sessionStorage.getItem('nova_role');
 const simulating = sessionStorage.getItem('nova_simulating');
 const realRole = sessionStorage.getItem('nova_real_role') || role;
-if (!uid || (role !== 'Mod' && !(simulating && realRole === 'Owner'))) { window.location.href = 'index.html'; }
+if (!uid || (role !== 'Mod' && role !== 'Senior Mod' && !(simulating && ['Owner','Senior Mod'].includes(realRole)))) { window.location.href = 'index.html'; }
 // Restore real role after entering via simulation
 if (simulating) { sessionStorage.setItem('nova_role', realRole); sessionStorage.removeItem('nova_simulating'); }
 
@@ -182,11 +183,13 @@ function buildStaffSelect(staffUsers, currentAssigned) {
 // ══════════════════════════════════════════════════════════
 async function overview() {
   document.getElementById('mainContent').innerHTML = '<div class="empty">Loading...</div>';
-  const [tSnap, lSnap, aSnap] = await Promise.all([
+  const [tSnap, lSnap, aSnap, settSnap2] = await Promise.all([
     getDocs(collection(db,'tickets')),
     getDocs(query(collection(db,'logs'), orderBy('timestamp','desc'), limit(8))),
     getDocs(query(collection(db,'channels','devalerts','messages'), orderBy('timestamp','desc'), limit(5))),
+    getDoc(doc(db,'settings','global')),
   ]);
+  const lkActive = settSnap2.exists()&&settSnap2.data().emergency;
   const open   = tSnap.docs.filter(d=>d.data().status==='open').length;
   const prog   = tSnap.docs.filter(d=>d.data().status==='in_progress').length;
   const closed = tSnap.docs.filter(d=>d.data().status==='closed').length;
@@ -210,6 +213,17 @@ async function overview() {
       <div class="stat-card"><div class="stat-label">Closed</div><div class="stat-value">${closed}</div></div>
       <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value">${tSnap.size}</div></div>
     </div>
+    ${role==='Senior Mod'?`
+    <div style="margin-top:4px;margin-bottom:16px;padding:14px 16px;background:rgba(248,81,73,.06);border:1px solid rgba(248,81,73,.2);border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div>
+        <div style="font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--danger);text-transform:uppercase;margin-bottom:3px">🔒 Lockdown Mode</div>
+        <div style="font-size:12px;color:var(--text-muted)">${lkActive?'Currently active — all users below Senior Mod are locked out.':'Locks out all users below Senior Mod. Sends an alert to the Owner immediately.'}</div>
+      </div>
+      ${lkActive
+        ?'<button class="btn" style="background:rgba(63,185,80,.15);border-color:rgba(63,185,80,.4);color:var(--success);flex-shrink:0" onclick="liftLockdown()">🔓 Lift Lockdown</button>'
+        :'<button class="btn" style="background:rgba(248,81,73,.15);border-color:rgba(248,81,73,.4);color:var(--danger);flex-shrink:0" onclick="triggerLockdown()">🔒 Trigger Lockdown</button>'
+      }
+    </div>`:''}
     <div class="grid-2">
       <div><div class="section-header"><div class="section-title">Recent Logs</div></div><div class="card" style="padding:0">${logRows}</div></div>
       <div><div class="section-header"><div class="section-title">Alerts</div></div><div class="card" style="padding:0">${alertRows}</div></div>
@@ -235,7 +249,10 @@ async function tickets() {
     const isAssignedToMe = t.assignedTo === email;
 
     return `<tr>
-      <td><span style="cursor:pointer;color:var(--text);font-weight:600" onclick="openTicket('${id}')">${escHtml(t.subject||'—')}</span></td>
+      <td>
+        <span style="cursor:pointer;color:var(--text);font-weight:600" onclick="openTicket('${id}')">${escHtml(t.subject||'—')}</span>
+        ${t.category==='ban_appeal'?'<span style="font-family:var(--mono);font-size:8px;background:rgba(248,81,73,.15);color:var(--danger);padding:1px 6px;border-radius:4px;margin-left:5px;font-weight:700">BAN APPEAL</span>':t.category==='mute_appeal'?'<span style="font-family:var(--mono);font-size:8px;background:rgba(210,153,34,.15);color:var(--warn);padding:1px 6px;border-radius:4px;margin-left:5px;font-weight:700">MUTE APPEAL</span>':''}
+      </td>
       <td class="mono" style="font-size:11px">${t.createdBy||'—'}</td>
       <td><span class="pill ${sp}">${t.status||'—'}</span></td>
       <td class="mono" style="font-size:11px">${t.assignedTo||'Unassigned'}</td>
@@ -699,6 +716,54 @@ window.saveUser = async function(uid2, uname, canChangeRole) {
   closeModal(); users();
 };
 
+
+
+// ── EMAIL ALERTS ─────────────────────────────────────────
+const EMAILJS_SERVICE  = 'service_tk338nf';
+const EMAILJS_TEMPLATE = 'template_tqg0gnq';
+const EMAILJS_KEY      = 'G7xmtT6VrVzxi1rfJ';
+const ALERT_EMAILS     = ['rhys.doughty@pgs.vic.edu.au','rhys97337@gmail.com'];
+async function sendAlert(subject, body) {
+  if(!window.emailjs)return;
+  const alerts = [
+    { service:'service_tk338nf', email:'rhys.doughty@pgs.vic.edu.au' },
+    { service:'service_xvsbbbr',  email:'rhys97337@gmail.com' },
+  ];
+  for(const a of alerts){
+    emailjs.send(a.service, 'template_tqg0gnq', {
+      to_email:   a.email,
+      subject:    '🚨 NOVA Alert: ' + subject,
+      body:       body + '\n\n---\nSent from NOVA at ' + new Date().toLocaleString(),
+      from_name:  'NOVA Security'
+    }, 'G7xmtT6VrVzxi1rfJ').catch(e=>console.warn('Alert failed for '+a.email, e));
+  }
+}
+
+window.triggerLockdown = async function() {
+  if(!confirm('Trigger EMERGENCY LOCKDOWN? This will lock out everyone except Owner and Senior Mods, and send an alert to the Owner.'))return;
+  await setDoc(doc(db,'settings','global'),{
+    emergency:true,
+    emergencyMessage:'🔒 Server is in lockdown. Please wait for staff to resolve the situation.',
+    lockdownTriggeredBy:email,lockdownAt:Date.now()
+  },{merge:true});
+  await writeLog('Triggered EMERGENCY LOCKDOWN');
+  sendAlert('Emergency Lockdown Activated',
+    'NOVA Emergency Lockdown was triggered by a Senior Mod.\n\n'+
+    '• Triggered by: '+email+'\n'+
+    '• Role: Senior Mod\n'+
+    '• Time: '+new Date().toLocaleString()+'\n\n'+
+    'Only Owner and Senior Mods can access NOVA.\n'+
+    'Log in to review and lift lockdown: https://join-nova.vercel.app/owner.html'
+  );
+  overview();
+};
+
+window.liftLockdown = async function() {
+  if(!confirm('Lift lockdown? This will restore normal access for all users.'))return;
+  await setDoc(doc(db,'settings','global'),{emergency:false,lockdownTriggeredBy:'',lockdownAt:0},{merge:true});
+  await writeLog('Lifted EMERGENCY LOCKDOWN');
+  overview();
+};
 
 
 const PUNISHMENT_GUIDE = {
