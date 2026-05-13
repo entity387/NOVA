@@ -1868,8 +1868,8 @@ window.submitTicket=async function(){
 // EmailJS — free tier, no backend needed
 // Setup: emailjs.com → create account → add Email service → create template
 // Template variables: {{subject}} {{body}} {{from_name}}
-const EMAILJS_SERVICE  = 'service_tk338nf';   // replace after setup
-const EMAILJS_TEMPLATE = 'template_tqg0gnq';  // replace after setup
+const EMAILJS_SERVICE  = 'service_mtcu1qo';   // replace after setup
+const EMAILJS_TEMPLATE = 'template_6qgxi0f';  // replace after setup
 const EMAILJS_KEY      = 'G7xmtT6VrVzxi1rfJ';   // replace after setup
 const ALERT_EMAILS     = ['rhys.doughty@pgs.vic.edu.au','rhys97337@gmail.com'];
 
@@ -1877,11 +1877,11 @@ async function sendAlert(subject, body) {
   console.log('sendAlert called:', subject);
   if(!window.emailjs){console.warn('EmailJS not loaded');return;}
   const alerts = [
-    { service:'service_tk338nf', email:'rhys.doughty@pgs.vic.edu.au' },
-    { service:'service_xvsbbbr',  email:'rhys97337@gmail.com' },
+    { service:'service_mtcu1qo', email:'rhys.doughty@pgs.vic.edu.au' },
+    { service:'service_mtcu1qo',  email:'rhys97337@gmail.com' },
   ];
   for(const a of alerts){
-    emailjs.send(a.service, 'template_tqg0gnq', {
+    emailjs.send(a.service, 'template_6qgxi0f', {
       to_email:   a.email,
       subject:    '🚨 NOVA Alert: ' + subject,
       body:       body + '\n\n---\nSent from NOVA at ' + new Date().toLocaleString(),
