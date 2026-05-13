@@ -713,6 +713,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);display:flex;f
     </div>
     <button class="btn-top btn-dashboard" id="dashBtn" style="display:none" onclick="goToDashboard()">⚙ Dashboard</button>
     <button class="btn-top" onclick="window.location.href='arcade.html'" style="background:var(--glow2);border-color:var(--accent);color:var(--accent2)">🕹 Arcade</button>
+    <button class="btn-top" id="rapidBtn" style="display:none;background:rgba(248,81,73,.15);border-color:rgba(248,81,73,.4);color:var(--danger)" onclick="rapidResponse()">⚡ Rapid Response</button>
     <button class="btn-top btn-ticket" onclick="openSubmitTicket()">🎫 Ticket</button>
     <button class="btn-top" onclick="doSignOut()">Sign Out</button>
   </div>
@@ -994,6 +995,8 @@ function setupTopbar() {
   else if (r==='Staff') { rb.style.display=''; rb.className='role-badge rb-staff'; rb.textContent='⚡ Staff'; }
   else rb.style.display = 'none';
   if (['Owner','Senior Mod','Mod','Staff'].includes(r)) document.getElementById('dashBtn').style.display='';
+  const rBtn=document.getElementById('rapidBtn');
+  if(rBtn)rBtn.style.display=r==='Senior Mod'?'':'none';
   document.getElementById('hudRealRole').textContent = r;
   document.getElementById('hudEmail').textContent = ME.email||'—';
 }
@@ -1052,7 +1055,16 @@ function watchMyProfile() {
       for (const n of pending) showModerationNotification(n);
       await updateDoc(doc(db,'users',ME.uid),{pendingNotifications:[]});
     }
-    ME.pingCount=data.pingCount||0; ME.pingChannels=data.pingChannels||{}; ME.mutedUntil=data.mutedUntil; ME.banned=data.banned; ME.rulesAccepted=data.rulesAccepted||false;
+    ME.pingCount=data.pingCount||0; ME.pingChannels=data.pingChannels||{};
+    // Check if we've been kicked from voice
+    if(data.voiceKickedFrom&&data.voiceKickedAt&&(Date.now()-data.voiceKickedAt)<30000){
+      if(currentVoiceRoom===data.voiceKickedFrom){
+        await leaveVoice();
+        toast('🔇 You were removed from the voice channel.','var(--danger)');
+      }
+      // Clear the kick flag
+      updateDoc(doc(db,'users',ME.uid),{voiceKickedFrom:'',voiceKickedAt:0}).catch(()=>{});
+    } ME.mutedUntil=data.mutedUntil; ME.banned=data.banned; ME.rulesAccepted=data.rulesAccepted||false;
     ME.pfp=data.pfp||''; ME.username=data.username||ME.email.split('@')[0];
     if (currentChan) renderInput(currentChan.type==='group');
     const badge = document.getElementById('pingBadge');
@@ -1114,14 +1126,14 @@ async function buildLeft() {
     const access=c.access||(c.restricted?'staff':'all');
     if(access==='staff'&&!['Owner','Senior Mod','Staff'].includes(effectiveRole()))return;
     if(access==='mod'&&!['Owner','Senior Mod','Mod'].includes(effectiveRole()))return;
-    if(c.restricted&&!['Owner','Mod','Staff'].includes(effectiveRole()))return;
-    const icon=c.icon||(c.id==='updates'?'📢':c.id==='mod'?'🛡':c.id==='staff'?'⚡':c.id==='rules'?'📋':'#');
+    if(c.restricted&&!['Owner','Senior Mod','Mod','Staff'].includes(effectiveRole()))return;
+    const icon=c.icon||(c.id==='updates'?'📢':c.id==='mod'?'🛡':c.id==='staff'?'⚡':c.id==='rules'?'📋':c.id==='hierarchy'?'👑':c.id==='applications'?'📝':'#');
     const hasPing=(ME.pingChannels&&(ME.pingChannels[c.id]||0)>0);
     html+=`<div class="chan-item" id="ci-${c.id}" onclick="openChannel('${c.id}')" style="animation-delay:${i*0.04}s"><span class="chan-icon">${icon}</span><span class="chan-name">${esc(c.name||c.id)}</span>${hasPing?'<span class="chan-ping-dot"></span>':''}</div>`;
   });
   html+=`</div><div class="left-section"><div class="left-label">Voice</div>`;
   VOICE_ROOMS.forEach((vr,i)=>{
-    if(vr.restricted&&!['Owner','Mod','Staff'].includes(effectiveRole()))return;
+    if(vr.restricted&&!['Owner','Senior Mod','Mod','Staff'].includes(effectiveRole()))return;
     html+=`<div class="voice-item" id="vi-${vr.id}" onclick="joinVoice('${vr.id}','${vr.name}')" style="animation-delay:${(i+5)*0.04}s">
       <div class="voice-item-row"><span class="voice-item-icon">🔊</span><span class="voice-item-name">${vr.name}</span><span class="voice-item-count" id="vpc-${vr.id}"></span></div>
       <div class="voice-part-list" id="vp-${vr.id}"></div>
@@ -1143,7 +1155,9 @@ async function ensureChannels() {
     {id:'updates',name:'updates',desc:'System updates & announcements',restricted:false,readonly:true,access:'all'},
     {id:'staff',  name:'staff',  desc:'Staff team channel',restricted:true,readonly:false,access:'staff'},
     {id:'mod',    name:'mod',    desc:'Mod team channel',restricted:true,readonly:false,access:'mod'},
-    {id:'rules',  name:'rules',  desc:'Read the rules before chatting',restricted:false,readonly:true,access:'all'},
+    {id:'rules',      name:'rules',      desc:'Read the rules before chatting',restricted:false,readonly:true,access:'all'},
+    {id:'hierarchy',  name:'hierarchy',  desc:'Roles and staff structure',     restricted:false,readonly:true,access:'all'},
+    {id:'applications',name:'applications',desc:'Staff applications',          restricted:true, readonly:false,access:'staff'},
   ]){
     const s=await getDoc(doc(db,'channels',ch.id));
     if(!s.exists()) await setDoc(doc(db,'channels',ch.id),{...ch,createdAt:Date.now()});
@@ -1161,11 +1175,13 @@ window.openChannel = async function(chanId) {
   if(!snap.exists())return;
   const data=snap.data();
   currentChan={id:chanId,data,type:'channel'};
-  document.getElementById('chanIcon').textContent=data.icon||(chanId==='updates'?'📢':chanId==='mod'?'🛡':chanId==='staff'?'⚡':chanId==='rules'?'📋':'#');
+  document.getElementById('chanIcon').textContent=data.icon||(chanId==='updates'?'📢':chanId==='mod'?'🛡':chanId==='staff'?'⚡':chanId==='rules'?'📋':chanId==='hierarchy'?'👑':chanId==='applications'?'📝':'#');
   document.getElementById('chanName').textContent=data.name||chanId;
   document.getElementById('chanDesc').textContent=data.desc?'— '+data.desc:'';
   document.getElementById('chanReadonlyTag').style.display=data.readonly?'':'none';
   if(chanId==='rules'){renderRules();updateMembers();return;}
+  if(chanId==='hierarchy'){renderHierarchy();updateMembers();return;}
+  if(chanId==='applications'){renderApplications();updateMembers();return;}
   // Clear ping for this channel
   if(ME.pingChannels&&ME.pingChannels[chanId]){
     const cleared=ME.pingChannels[chanId]||0;
@@ -1251,7 +1267,7 @@ function setActive(id) {
 function renderRules(){
   const msgArea=document.getElementById('msgArea');
   const inputWrap=document.getElementById('inputWrap');
-  const accepted=ME.rulesAccepted||['Owner','Mod','Staff'].includes(effectiveRole());
+  const accepted=ME.rulesAccepted||['Owner','Senior Mod','Mod','Staff'].includes(effectiveRole());
   inputWrap.innerHTML=accepted
     ?`<div class="readonly-bar" style="color:var(--success)">✅ Rules accepted — you can chat freely</div>`
     :`<div class="readonly-bar">📋 Read all the rules below to unlock chat</div>`;
@@ -1363,6 +1379,216 @@ window.acceptRules=async function(){
   toast('✅ Rules accepted! You can now chat.','var(--success)');
 };
 
+// ── HIERARCHY ──────────────────────────────────────────────
+function renderHierarchy(){
+  const msgArea=document.getElementById('msgArea');
+  const inputWrap=document.getElementById('inputWrap');
+  inputWrap.innerHTML=`<div class="readonly-bar">👑 Staff structure — read only</div>`;
+
+  const roles=[
+    {
+      role:'Owner',icon:'👑',col:'#d4af37',bg:'rgba(212,175,55,.08)',border:'rgba(212,175,55,.25)',
+      desc:'Runs NOVA. Has full access to everything.',
+      perks:['Full dashboard access','All moderation powers','Can hire/fire any role','Controls system settings','Emergency lockdown','Mass tools','Cannot be moderated'],
+    },
+    {
+      role:'Senior Mod',icon:'✦',col:'#14b8a6',bg:'rgba(20,184,166,.08)',border:'rgba(20,184,166,.25)',
+      desc:'Trusted, experienced moderators hand-picked by the Owner.',
+      perks:['All Mod powers','Trigger Emergency Lockdown','Rapid Response (mass mute new accounts)','Promote users to Mod','User notes (read/write)','Access to mod dashboard'],
+    },
+    {
+      role:'Mod',icon:'🛡',col:'#58a6ff',bg:'rgba(88,166,255,.08)',border:'rgba(88,166,255,.25)',
+      desc:'Core moderation team. Handles most day-to-day issues.',
+      perks:['Warn / Mute / Temp Ban / Perm Ban','Delete any message','Kick from voice','Review and close tickets','Promote Staff ↔ User','User notes (read/write)','Access to mod dashboard'],
+    },
+    {
+      role:'Staff',icon:'⚡',col:'#3fb950',bg:'rgba(63,185,80,.08)',border:'rgba(63,185,80,.25)',
+      desc:'Community helpers. First point of contact for users.',
+      perks:['Warn and Mute users','Respond to tickets','Escalate to Mod when needed','User notes (read/write)','Access to staff dashboard','Access to #staff channel'],
+    },
+    {
+      role:'User',icon:'💬',col:'#8b949e',bg:'rgba(139,148,158,.06)',border:'rgba(139,148,158,.2)',
+      desc:'Regular members of the community.',
+      perks:['Chat in public channels','Submit support tickets','Appeal mutes and bans','Access to arcade'],
+    },
+  ];
+
+  const cards=roles.map(r=>`
+    <div style="background:${r.bg};border:1px solid ${r.border};border-radius:12px;padding:18px 20px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:22px">${r.icon}</span>
+        <div>
+          <div style="font-size:16px;font-weight:700;color:${r.col}">${r.role}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${r.desc}</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${r.perks.map(p=>`<span style="font-size:11px;background:var(--surface2);border:1px solid var(--border);padding:3px 10px;border-radius:20px;color:var(--text-muted)">${p}</span>`).join('')}
+      </div>
+    </div>`).join('');
+
+  msgArea.innerHTML=`<div style="max-width:680px;margin:0 auto;padding:28px 24px">
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:3px;color:var(--text-dim);text-transform:uppercase;margin-bottom:6px">👑 NOVA Staff Hierarchy</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:24px;line-height:1.6">The NOVA team is structured into roles with different responsibilities and powers. If you need help, start with Staff — they'll escalate if needed.</div>
+    ${cards}
+    <div style="margin-top:20px;padding:14px 16px;background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.2);border-radius:10px;font-size:12px;color:var(--text-muted);line-height:1.7">
+      💡 <strong>Want to join the team?</strong> Check out <span onclick="openChannel('applications')" style="color:var(--accent2);cursor:pointer;text-decoration:underline">#applications</span> to apply for a Staff position.
+    </div>
+  </div>`;
+}
+
+
+// ── STAFF APPLICATIONS ─────────────────────────────────────
+function renderApplications(){
+  const msgArea=document.getElementById('msgArea');
+  const inputWrap=document.getElementById('inputWrap');
+  const role=effectiveRole();
+  const isStaff=['Owner','Senior Mod','Mod','Staff'].includes(role);
+
+  // Staff+ see the applications list, users see the apply form
+  if(isStaff){
+    inputWrap.innerHTML=`<div class="readonly-bar">📝 Staff Applications — review panel</div>`;
+    loadApplicationsList(msgArea);
+  } else {
+    inputWrap.innerHTML=`<div class="readonly-bar">📝 Apply for a Staff position below</div>`;
+    renderApplyForm(msgArea);
+  }
+}
+
+function renderApplyForm(msgArea){
+  msgArea.innerHTML=`<div style="max-width:640px;margin:0 auto;padding:28px 24px">
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:3px;color:var(--text-dim);text-transform:uppercase;margin-bottom:6px">📝 Staff Application</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:22px;line-height:1.6">
+      Interested in joining the NOVA team? Fill in the form below. Applications are reviewed by Mods and Senior Mods. Be honest and thoughtful — we value quality over quantity.
+    </div>
+    <div class="form-group"><label class="form-label">Age <span style="color:var(--danger)">*</span></label>
+      <input class="form-input" id="appAge" placeholder="How old are you?" type="number" min="10" max="99"></div>
+    <div class="form-group"><label class="form-label">Timezone <span style="color:var(--danger)">*</span></label>
+      <input class="form-input" id="appTimezone" placeholder="e.g. AEST, GMT+10, EST..."></div>
+    <div class="form-group"><label class="form-label">How active are you on NOVA? <span style="color:var(--danger)">*</span></label>
+      <select class="form-select" id="appActivity">
+        <option value="" disabled selected>Select...</option>
+        <option value="A few times a week">A few times a week</option>
+        <option value="Most days">Most days</option>
+        <option value="Every day">Every day</option>
+        <option value="Multiple times a day">Multiple times a day</option>
+      </select></div>
+    <div class="form-group"><label class="form-label">Why do you want to be Staff? <span style="color:var(--danger)">*</span></label>
+      <textarea class="form-textarea" id="appWhy" placeholder="Tell us why you want to join the team and what you'd bring..." style="min-height:100px"></textarea></div>
+    <div class="form-group"><label class="form-label">Do you have any moderation experience? <span style="color:var(--danger)">*</span></label>
+      <textarea class="form-textarea" id="appExp" placeholder="Previous experience on other servers, communities, or platforms..." style="min-height:80px"></textarea></div>
+    <div class="form-group"><label class="form-label">What would you do if a user was being rude to others but hadn't broken a specific rule?</label>
+      <textarea class="form-textarea" id="appScenario" placeholder="Describe how you'd handle it..." style="min-height:80px"></textarea></div>
+    <div class="form-group"><label class="form-label">Anything else you want to add?</label>
+      <textarea class="form-textarea" id="appExtra" placeholder="Optional..." style="min-height:60px"></textarea></div>
+    <div style="margin-bottom:20px">
+      <button class="bplay" style="font-size:13px;padding:10px 28px" onclick="submitApplication()">Submit Application</button>
+    </div>
+  </div>`;
+}
+
+async function loadApplicationsList(msgArea){
+  msgArea.innerHTML=`<div style="padding:24px;color:var(--text-dim);font-family:var(--mono);font-size:11px">Loading applications...</div>`;
+  try{
+    const snap=await getDocs(query(collection(db,'applications'),orderBy('timestamp','desc')));
+    if(!snap.size){msgArea.innerHTML=`<div style="padding:24px;text-align:center;color:var(--text-dim);font-family:var(--mono);font-size:11px">No applications yet.</div>`;return;}
+    const cards=snap.docs.map(d=>{
+      const a=d.data();const aid=d.id;
+      const statusCol=a.status==='accepted'?'var(--success)':a.status==='rejected'?'var(--danger)':'var(--text-dim)';
+      const statusLabel=a.status==='accepted'?'✅ Accepted':a.status==='rejected'?'❌ Rejected':'⏳ Pending';
+      return`<div style="background:var(--surface1);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <div>
+            <span style="font-size:14px;font-weight:700">${esc(a.username||a.email||'?')}</span>
+            <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-left:8px">${esc(a.email||'')}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-family:var(--mono);font-size:10px;color:${statusCol}">${statusLabel}</span>
+            <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim)">${ts(a.timestamp)}</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div><span style="font-family:var(--mono);font-size:8px;letter-spacing:1px;color:var(--text-dim);text-transform:uppercase">Age</span><div style="font-size:13px;margin-top:2px">${esc(a.age||'—')}</div></div>
+          <div><span style="font-family:var(--mono);font-size:8px;letter-spacing:1px;color:var(--text-dim);text-transform:uppercase">Timezone</span><div style="font-size:13px;margin-top:2px">${esc(a.timezone||'—')}</div></div>
+          <div><span style="font-family:var(--mono);font-size:8px;letter-spacing:1px;color:var(--text-dim);text-transform:uppercase">Activity</span><div style="font-size:13px;margin-top:2px">${esc(a.activity||'—')}</div></div>
+        </div>
+        <div style="margin-bottom:10px"><div style="font-family:var(--mono);font-size:8px;letter-spacing:1px;color:var(--text-dim);text-transform:uppercase;margin-bottom:4px">Why they want to join</div><div style="font-size:12px;color:var(--text-muted);line-height:1.6;background:var(--surface2);padding:8px 10px;border-radius:6px">${esc(a.why||'—')}</div></div>
+        <div style="margin-bottom:10px"><div style="font-family:var(--mono);font-size:8px;letter-spacing:1px;color:var(--text-dim);text-transform:uppercase;margin-bottom:4px">Experience</div><div style="font-size:12px;color:var(--text-muted);line-height:1.6;background:var(--surface2);padding:8px 10px;border-radius:6px">${esc(a.experience||'—')}</div></div>
+        ${a.scenario?`<div style="margin-bottom:10px"><div style="font-family:var(--mono);font-size:8px;letter-spacing:1px;color:var(--text-dim);text-transform:uppercase;margin-bottom:4px">Scenario response</div><div style="font-size:12px;color:var(--text-muted);line-height:1.6;background:var(--surface2);padding:8px 10px;border-radius:6px">${esc(a.scenario)}</div></div>`:''}
+        ${a.extra?`<div style="margin-bottom:10px"><div style="font-family:var(--mono);font-size:8px;letter-spacing:1px;color:var(--text-dim);text-transform:uppercase;margin-bottom:4px">Additional info</div><div style="font-size:12px;color:var(--text-muted);line-height:1.6;background:var(--surface2);padding:8px 10px;border-radius:6px">${esc(a.extra)}</div></div>`:''}
+        ${a.status==='pending'?`<div style="display:flex;gap:8px;margin-top:4px">
+          <button class="btn" style="background:rgba(63,185,80,.15);border-color:rgba(63,185,80,.4);color:var(--success)" onclick="reviewApplication('${aid}','accepted','${esc(a.uid||'')}','${esc(a.username||'')}')">✅ Accept</button>
+          <button class="btn" style="background:rgba(248,81,73,.1);border-color:rgba(248,81,73,.3);color:var(--danger)" onclick="reviewApplication('${aid}','rejected','','')">❌ Reject</button>
+        </div>`:''}
+      </div>`;
+    }).join('');
+    msgArea.innerHTML=`<div style="max-width:720px;margin:0 auto;padding:24px">${cards}</div>`;
+  }catch(e){msgArea.innerHTML=`<div style="padding:24px;color:var(--danger);font-size:13px">Error: ${e.message}</div>`;}
+}
+
+window.submitApplication=async function(){
+  const age=document.getElementById('appAge')?.value.trim();
+  const timezone=document.getElementById('appTimezone')?.value.trim();
+  const activity=document.getElementById('appActivity')?.value;
+  const why=document.getElementById('appWhy')?.value.trim();
+  const experience=document.getElementById('appExp')?.value.trim();
+  const scenario=document.getElementById('appScenario')?.value.trim();
+  const extra=document.getElementById('appExtra')?.value.trim();
+  if(!age||!timezone||!activity||!why||why.length<20){
+    toast('Please fill in all required fields (Why must be at least 20 characters).','var(--danger)');return;
+  }
+  if(!experience||experience.length<10){
+    toast('Please describe your moderation experience.','var(--danger)');return;
+  }
+  // Check for existing application
+  try{
+    const existing=await getDocs(query(collection(db,'applications'),where('uid','==',ME.uid)));
+    if(!existing.empty){toast('You already have a pending or reviewed application.','var(--warn)');return;}
+    await addDoc(collection(db,'applications'),{
+      uid:ME.uid,email:ME.email,username:ME.username||ME.email,
+      age,timezone,activity,why,experience,scenario,extra,
+      status:'pending',timestamp:Date.now()
+    });
+    document.getElementById('msgArea').innerHTML=`<div style="max-width:480px;margin:60px auto;text-align:center;padding:24px">
+      <div style="font-size:44px;margin-bottom:16px">📨</div>
+      <div style="font-family:var(--mono);font-size:14px;letter-spacing:2px;margin-bottom:10px">Application Submitted!</div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.6">Your application has been received and will be reviewed by our team. We'll let you know the outcome via a ticket.</div>
+    </div>`;
+  }catch(e){toast('Failed to submit: '+e.message,'var(--danger)');}
+};
+
+window.reviewApplication=async function(aid,status,uid,username){
+  if(status==='accepted'&&!['Owner','Senior Mod','Mod'].includes(effectiveRole())){
+    toast('Only Senior Mods and above can accept applications.','var(--danger)');return;
+  }
+  await updateDoc(doc(db,'applications',aid),{status,reviewedBy:ME.email,reviewedAt:Date.now()});
+  if(status==='accepted'&&uid){
+    // Promote to Staff
+    await updateDoc(doc(db,'users',uid),{role:'Staff'});
+    // Notify via ticket
+    await addDoc(collection(db,'tickets'),{
+      subject:'Staff Application Accepted 🎉',
+      message:`Congratulations ${username}! Your staff application has been accepted. Welcome to the team! Check out #staff for next steps.`,
+      priority:'high',category:'general',
+      createdBy:ME.email,createdByUid:ME.uid,createdByUsername:ME.username||ME.email,
+      assignedTo:'',status:'open',timestamp:Date.now(),
+      escalationLevel:'none',escalationReason:'',escalatedBy:''
+    });
+    toast(`✅ ${username} accepted and promoted to Staff!`,'var(--success)');
+  } else {
+    if(uid) await addDoc(collection(db,'tickets'),{
+      subject:'Staff Application Update',
+      message:`Thank you for applying for a Staff position on NOVA. After careful consideration, we won't be moving forward with your application at this time. You're welcome to apply again in the future.`,
+      priority:'low',category:'general',
+      createdBy:ME.email,createdByUid:ME.uid,createdByUsername:ME.username||ME.email,
+      assignedTo:'',status:'open',timestamp:Date.now(),
+      escalationLevel:'none',escalationReason:'',escalatedBy:''
+    });
+    toast('Application rejected.','var(--text-dim)');
+  }
+  openChannel('applications');
+};
+
 function toast(msg,col='var(--accent2)'){
   document.querySelectorAll('._toast').forEach(e=>e.remove());
   const el=document.createElement('div');el.className='_toast';
@@ -1465,12 +1691,12 @@ function renderMsgs(docs){
     if(ds!==lastDate){html+=`<div class="date-div">${ds}</div>`;lastDate=ds;prevSender=null;}
     const ts=new Date(ms).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
     const role=msg.senderRole||'User';
-    const rc=role==='Owner'?'owner':role==='Mod'?'mod':role==='Staff'?'staff':'user';
+    const rc=role==='Owner'?'owner':role==='Senior Mod'?'senior':role==='Mod'?'mod':role==='Staff'?'staff':'user';
     const init=(msg.senderUsername||msg.senderEmail||'?')[0].toUpperCase();
     const isMe=msg.senderUid===ME.uid;
     const myHandle=(ME.username||ME.email||'').toLowerCase();
     const pinged=msg.text&&(msg.text.toLowerCase().includes('@'+myHandle)||msg.text.toLowerCase().includes('@everyone'));
-    const canDel=isMe||effectiveRole()==='Owner'||effectiveRole()==='Mod';
+    const canDel=isMe||['Owner','Senior Mod','Mod'].includes(effectiveRole());
     const delBtn=canDel&&!msg.system?`<button class="mab danger" onclick="deleteMsg('${mid}')">Delete</button>`:'';
     const replyBtn=!msg.system?`<button class="mab" onclick="setReply('${mid}','${escAttr(msg.senderUsername||msg.senderEmail)}','${escAttr((msg.text||'').slice(0,80))}')">Reply</button>`:'';
     // Stacking — same sender within 5 minutes
@@ -1590,8 +1816,8 @@ function memberRow(u, showPresenceDot=true){
 function updateMembers(){
   const all=Object.values(allUsers);
   const visible=all.filter(u=>!u.banned);
-  const filtered=currentChan?.data?.restricted?visible.filter(u=>['Owner','Mod','Staff'].includes(u.role)):visible;
-  const ord=['Owner','Mod','Staff','User'];
+  const filtered=currentChan?.data?.restricted?visible.filter(u=>['Owner','Senior Mod','Mod','Staff'].includes(u.role)):visible;
+  const ord=['Owner','Senior Mod','Mod','Staff','User'];
 
   // Split by presence
   const online=filtered.filter(u=>getPresence(u.uid)==='online');
@@ -1948,16 +2174,53 @@ window.liftLockdown = async function() {
   await addDoc(collection(db,'logs'),{user:ME.email,role:ME.role,action:`Lifted EMERGENCY LOCKDOWN`,timestamp:Date.now()});
 };
 
+// ── RAPID RESPONSE KIT (Senior Mod only) ─────────────────
+window.rapidResponse=async function(){
+  if(!confirm('Rapid Response: Mute all users who joined in the last 10 minutes for 1 hour?\n\nThis is for raid situations only.'))return;
+  const tenMinsAgo=Date.now()-10*60*1000;
+  try{
+    const snap=await getDocs(query(collection(db,'users'),where('joinedAt','>',tenMinsAgo)));
+    const newUsers=snap.docs.filter(d=>d.data().role==='User');
+    if(!newUsers.length){alert('No new users in the last 10 minutes.');return;}
+    const muteUntil=new Date(Date.now()+60*60*1000);
+    let count=0;
+    for(const d of newUsers){
+      await updateDoc(doc(db,'users',d.id),{
+        mutedUntil:muteUntil,
+        punishmentHistory:arrayUnion({type:'Mute',reason:'Rapid Response — possible raid',at:Date.now()}),
+        pendingNotifications:arrayUnion({type:'Mute',reason:'Rapid Response mute — possible raid',until:muteUntil.getTime(),issuedBy:ME.email,at:Date.now()})
+      });
+      count++;
+    }
+    toast(`⚡ Rapid Response: ${count} new users muted for 1 hour.`,'var(--warn)');
+    // Log it
+    await addDoc(collection(db,'logs'),{user:ME.email,role:ME.role,action:`Rapid Response: muted ${count} new users`,timestamp:Date.now()});
+  }catch(e){alert('Failed: '+e.message);}
+};
+
+
 // ── VOICE ─────────────────────────────────────────────────
 function watchVoicePresence(){
   VOICE_ROOMS.forEach(vr=>{
     onSnapshot(collection(db,'voiceRooms',vr.id,'participants'),snap=>{
-      const parts=snap.docs.map(d=>d.data());
+      const parts=snap.docs.filter(d=>{
+        const p=d.data();
+        // Filter out stale participants (lastPing > 30s ago means tab closed)
+        if(p.uid===ME.uid)return true;
+        if(p.lastPing&&(Date.now()-p.lastPing)>30000){
+          deleteDoc(doc(db,'voiceRooms',vr.id,'participants',d.id)).catch(()=>{});
+          return false;
+        }
+        return true;
+      }).map(d=>d.data());
       const cnt=document.getElementById('vpc-'+vr.id);
       const plist=document.getElementById('vp-'+vr.id);
       const item=document.getElementById('vi-'+vr.id);
       if(cnt)cnt.textContent=parts.length?`${parts.length}`:'';
-      if(plist)plist.innerHTML=parts.map(p=>`<div class="voice-part"><span>${esc(p.username||p.email||'?')}</span>${p.muted?'<span style="font-size:9px;color:var(--danger)">🔇</span>':''}</div>`).join('');
+      if(plist)plist.innerHTML=parts.map(p=>{
+        const canKick=['Owner','Senior Mod','Mod'].includes(ME.role)&&p.uid!==ME.uid;
+        return`<div class="voice-part"><span>${esc(p.username||p.email||'?')}</span>${p.muted?'<span style="font-size:9px;color:var(--danger)">🔇</span>':''}${canKick?`<span onclick="kickFromVoice('${vr.id}','${p.uid}','${esc(p.username||p.email||'')}')" style="font-size:9px;color:var(--danger);cursor:pointer;margin-left:auto;opacity:.6" title="Kick from voice">✕</span>`:''}</div>`;
+      }).join('');
       if(item)item.classList.toggle('in-room',parts.some(p=>p.uid===ME.uid));
     });
   });
@@ -1966,7 +2229,13 @@ function watchVoicePresence(){
 window.joinVoice=async function(roomId,roomName){
   if(currentVoiceRoom===roomId){await leaveVoice();return;}
   if(currentVoiceRoom)await leaveVoice();
-  await setDoc(doc(db,'voiceRooms',roomId,'participants',ME.uid),{uid:ME.uid,email:ME.email,username:ME.username||ME.email,muted:false,joinedAt:Date.now()});
+  await setDoc(doc(db,'voiceRooms',roomId,'participants',ME.uid),{uid:ME.uid,email:ME.email,username:ME.username||ME.email,muted:false,joinedAt:Date.now(),lastPing:Date.now()});
+  // Heartbeat — keeps participant alive, clears stale entries
+  if(_voiceHeartbeat)clearInterval(_voiceHeartbeat);
+  _voiceHeartbeat=setInterval(async()=>{
+    if(!currentVoiceRoom)return;
+    try{await updateDoc(doc(db,'voiceRooms',currentVoiceRoom,'participants',ME.uid),{lastPing:Date.now()});}catch(_){}
+  },15000);
   currentVoiceRoom=roomId;
   document.getElementById('voiceSection').innerHTML=`
     <div class="right-label">Voice — Active</div>
@@ -2011,7 +2280,18 @@ window.toggleMute=async function(){
   if(currentVoiceRoom)await updateDoc(doc(db,'voiceRooms',currentVoiceRoom,'participants',ME.uid),{muted:isMuted});
 };
 
+let _voiceHeartbeat=null;
+window.kickFromVoice=async function(roomId, uid, username){
+  if(!confirm(`Kick ${username} from voice?`))return;
+  try{
+    await deleteDoc(doc(db,'voiceRooms',roomId,'participants',uid));
+    // Write a kick flag so their client knows to disconnect
+    await setDoc(doc(db,'users',uid),{voiceKickedFrom:roomId,voiceKickedAt:Date.now()},{merge:true});
+  }catch(e){console.error('Kick failed',e);}
+};
+
 window.leaveVoice=async function(){
+  if(_voiceHeartbeat){clearInterval(_voiceHeartbeat);_voiceHeartbeat=null;}
   if(!currentVoiceRoom)return;
   try{await deleteDoc(doc(db,'voiceRooms',currentVoiceRoom,'participants',ME.uid));}catch(_){}
   if(agoraLocalTrack){agoraLocalTrack.close();agoraLocalTrack=null;}
@@ -2028,7 +2308,7 @@ window.startGroupCall=function(){if(!currentChan||currentChan.type!=='group')ret
 // ── PROFILE ───────────────────────────────────────────────
 window.openProfile=function(){
   const r=effectiveRole();const uname=ME.username||ME.email||'?';
-  const avStyle=r==='Owner'?`background:var(--gold-dim);color:var(--gold);border:2px solid var(--gold-border)`:r==='Mod'?`background:rgba(88,166,255,0.18);color:var(--info);border:2px solid rgba(88,166,255,0.35)`:r==='Staff'?`background:rgba(63,185,80,0.18);color:var(--success);border:2px solid rgba(63,185,80,0.35)`:`background:var(--surface2);color:var(--text-muted);border:2px solid var(--border)`;
+  const avStyle=r==='Owner'?`background:var(--gold-dim);color:var(--gold);border:2px solid var(--gold-border)`:r==='Senior Mod'?`background:rgba(20,184,166,0.18);color:#14b8a6;border:2px solid rgba(20,184,166,0.4)`:r==='Mod'?`background:rgba(88,166,255,0.18);color:var(--info);border:2px solid rgba(88,166,255,0.35)`:r==='Staff'?`background:rgba(63,185,80,0.18);color:var(--success);border:2px solid rgba(63,185,80,0.35)`:`background:var(--surface2);color:var(--text-muted);border:2px solid var(--border)`;
   const pfpContent=ME.pfp?`<img src="${ME.pfp}" style="width:72px;height:72px;border-radius:50%;object-fit:cover">`:`<div class="pfp-inner" style="${avStyle}">${uname[0].toUpperCase()}</div>`;
   const pings=ME.pingCount||0;
   openModal(`<div class="modal-title">Your Profile</div>
@@ -2072,7 +2352,7 @@ window.saveProfile=async function(){
 function updateDebugHud(debugOn){
   const hud=document.getElementById('debugHud');if(!hud)return;
   // Always use REAL role for HUD visibility — don't hide it when simulating a lower role
-  const canDebug=ME&&['Owner','Mod'].includes(ME.role);
+  const canDebug=ME&&['Owner','Senior Mod','Mod'].includes(ME.role);
   hud.style.display=(debugOn&&canDebug)?'block':'none';
   // Keep real role label updated
   const realEl=document.getElementById('hudRealRole');

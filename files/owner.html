@@ -23,6 +23,7 @@
     <button class="nav-btn"        onclick="showPanel('alerts')"    id="nav-alerts"><span class="nav-icon">◬</span> Alerts</button>
     <button class="nav-btn"        onclick="showPanel('roles')"     id="nav-roles"><span class="nav-icon">◇</span> Roles</button>
     <button class="nav-btn"        onclick="showPanel('guide')"     id="nav-guide"><span class="nav-icon">📋</span> Guide</button>
+    <button class="nav-btn"        onclick="showPanel('applications')" id="nav-applications"><span class="nav-icon">📝</span> Applications</button>
     <button class="nav-btn" onclick="window.location.href='chat.html'"
       style="margin-top:8px;border-top:1px solid var(--border);padding-top:12px">
       <span class="nav-icon">←</span> Back to Chat
@@ -71,7 +72,7 @@
   const Q=[];
   const proxy=n=>function(){Q.push([n,arguments]);};
   ['showPanel','manageUser','warnUser','confirmWarn','permBan','confirmPermBan',
-   'saveUser','closeModal','deleteChannel','editChannel','updateChannel','pickChanEmoji','toggleLockdown'].forEach(n=>window[n]=proxy(n));
+   'saveUser','closeModal','deleteChannel','editChannel','updateChannel','pickChanEmoji','toggleLockdown','ownerReviewApp'].forEach(n=>window[n]=proxy(n));
   window._ownerDrain=function(){
     Q.forEach(([n,a])=>{if(typeof window[n]==='function'&&window[n].toString().indexOf('proxy')===-1)window[n](...a);});
   };
@@ -128,7 +129,7 @@ window.showPanel = function(name) {
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   const nb = document.getElementById('nav-'+name); if(nb) nb.classList.add('active');
   document.getElementById('topbarTitle').textContent = name.toUpperCase();
-  ({overview,tickets,users,channels,settings,logs,alerts,roles,mytickets,guide:guidePanel})[name]?.();
+  ({overview,tickets,users,channels,settings,logs,alerts,roles,mytickets,guide:guidePanel,applications:applicationsPanel})[name]?.();
 };
 window.doLogout  = async () => { await signOut(auth); sessionStorage.clear(); window.location.href='index.html'; };
 window.simRole   = r => { document.getElementById('hudSim').textContent = r||'—'; };
@@ -532,6 +533,8 @@ window.manageUser = async function(uid2) {
             <div id="mRuleHint"></div>
       </div>
       <div>
+        <div class="form-label" style="margin-bottom:6px">Staff Notes <span style="color:var(--text-dim);font-size:9px">(private — not visible to users)</span></div>
+        <textarea class="form-textarea" id="mStaffNotes" placeholder="Private notes about this user..." style="min-height:60px;margin-bottom:12px">${escHtml(u.staffNotes||'')}</textarea>
         <div class="form-label" style="margin-bottom:8px">Punishment History</div>
         <div class="punish-list">${histHtml}</div>
       </div>
@@ -621,6 +624,89 @@ async function sendAlert(subject, body) {
     }, 'G7xmtT6VrVzxi1rfJ').catch(e=>console.warn('Alert failed for '+a.email, e));
   }
 }
+
+
+// ══════════════════════════════════════════════════════════
+// APPLICATIONS
+// ══════════════════════════════════════════════════════════
+async function applicationsPanel() {
+  document.getElementById('mainContent').innerHTML = '<div class="empty">Loading...</div>';
+  try {
+    const snap = await getDocs(query(collection(db,'applications'), orderBy('timestamp','desc')));
+    if(!snap.size){
+      document.getElementById('mainContent').innerHTML = '<div class="panel"><div class="panel-title">📝 Staff Applications</div><div class="empty">No applications yet.</div></div>';
+      return;
+    }
+    const cards = snap.docs.map(d => {
+      const a = d.data(); const aid = d.id;
+      const statusCol = a.status==='accepted'?'var(--success)':a.status==='rejected'?'var(--danger)':'var(--warn)';
+      const statusLabel = a.status==='accepted'?'✅ Accepted':a.status==='rejected'?'❌ Rejected':'⏳ Pending';
+      return `<div class="card" style="margin-bottom:14px;padding:16px 18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <div>
+            <span style="font-size:14px;font-weight:700">${escHtml(a.username||a.email||'?')}</span>
+            <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-left:8px">${escHtml(a.email||'')}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-family:var(--mono);font-size:10px;color:${statusCol}">${statusLabel}</span>
+            <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim)">${ts(a.timestamp)}</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
+          <div><div class="form-label" style="font-size:8px;margin-bottom:2px">Age</div><div style="font-size:13px">${escHtml(a.age||'—')}</div></div>
+          <div><div class="form-label" style="font-size:8px;margin-bottom:2px">Timezone</div><div style="font-size:13px">${escHtml(a.timezone||'—')}</div></div>
+          <div><div class="form-label" style="font-size:8px;margin-bottom:2px">Activity</div><div style="font-size:13px">${escHtml(a.activity||'—')}</div></div>
+        </div>
+        <div style="margin-bottom:10px"><div class="form-label" style="font-size:8px;margin-bottom:4px">Why they want to join</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6;background:var(--surface2);padding:8px 10px;border-radius:6px;border:1px solid var(--border)">${escHtml(a.why||'—')}</div></div>
+        <div style="margin-bottom:10px"><div class="form-label" style="font-size:8px;margin-bottom:4px">Experience</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6;background:var(--surface2);padding:8px 10px;border-radius:6px;border:1px solid var(--border)">${escHtml(a.experience||'—')}</div></div>
+        ${a.scenario?`<div style="margin-bottom:10px"><div class="form-label" style="font-size:8px;margin-bottom:4px">Scenario response</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6;background:var(--surface2);padding:8px 10px;border-radius:6px;border:1px solid var(--border)">${escHtml(a.scenario)}</div></div>`:''}
+        ${a.extra?`<div style="margin-bottom:10px"><div class="form-label" style="font-size:8px;margin-bottom:4px">Additional info</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6;background:var(--surface2);padding:8px 10px;border-radius:6px;border:1px solid var(--border)">${escHtml(a.extra)}</div></div>`:''}
+        ${a.status==='pending'?`<div style="display:flex;gap:8px;margin-top:4px">
+          <button class="btn" style="background:rgba(63,185,80,.15);border-color:rgba(63,185,80,.4);color:var(--success)" onclick="ownerReviewApp('${aid}','accepted','${escHtml(a.uid||'')}','${escHtml(a.username||'')}')">✅ Accept</button>
+          <button class="btn" style="background:rgba(248,81,73,.1);border-color:rgba(248,81,73,.3);color:var(--danger)" onclick="ownerReviewApp('${aid}','rejected','${escHtml(a.uid||'')}','${escHtml(a.username||'')}')">❌ Reject</button>
+        </div>`:`<div style="font-family:var(--mono);font-size:9px;color:var(--text-dim)">Reviewed by ${escHtml(a.reviewedBy||'?')} · ${ts(a.reviewedAt)}</div>`}
+      </div>`;
+    }).join('');
+    document.getElementById('mainContent').innerHTML = `
+    <div class="panel">
+      <div class="section-header"><div class="panel-title">📝 Staff Applications</div></div>
+      ${cards}
+    </div>`;
+  } catch(e) {
+    document.getElementById('mainContent').innerHTML = `<div class="panel"><div class="empty">Error: ${e.message}</div></div>`;
+  }
+}
+
+window.ownerReviewApp = async function(aid, status, uid, username) {
+  await updateDoc(doc(db,'applications',aid), {status, reviewedBy:email, reviewedAt:Date.now()});
+  if(status==='accepted' && uid) {
+    await updateDoc(doc(db,'users',uid), {role:'Staff'});
+    await addDoc(collection(db,'tickets'),{
+      subject:'Staff Application Accepted 🎉',
+      message:`Congratulations ${username}! Your staff application has been accepted. Welcome to the NOVA team! Check out #staff for next steps.`,
+      priority:'high',category:'general',
+      createdBy:email,createdByUid:'owner',createdByUsername:'NOVA Team',
+      assignedTo:'',status:'open',timestamp:Date.now(),
+      escalationLevel:'none',escalationReason:'',escalatedBy:''
+    });
+    await writeLog(`Accepted staff application: ${username}`);
+  } else {
+    if(uid) await addDoc(collection(db,'tickets'),{
+      subject:'Staff Application Update',
+      message:`Thank you for applying to NOVA Staff. After careful consideration, we won't be moving forward with your application at this time. You're welcome to apply again in the future.`,
+      priority:'low',category:'general',
+      createdBy:email,createdByUid:'owner',createdByUsername:'NOVA Team',
+      assignedTo:'',status:'open',timestamp:Date.now(),
+      escalationLevel:'none',escalationReason:'',escalatedBy:''
+    });
+    await writeLog(`Rejected staff application: ${username}`);
+  }
+  applicationsPanel();
+};
 
 
 const PUNISHMENT_GUIDE = {
@@ -843,7 +929,8 @@ window.saveUser = async function(uid2, uname) {
     return sel.value;
   })();
   if (mutingOrBanning && !reason) { alert('Please select a rule broken before applying a mute or temp ban.'); return; }
-  const updates  = { role: newRole };
+  const staffNotes = document.getElementById('mStaffNotes')?.value.trim()??'';
+  const updates  = { role: newRole, staffNotes };
   const history  = [];
   if (muteDur) {
     const muteUntil = Date.now()+parseInt(muteDur);

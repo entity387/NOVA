@@ -505,24 +505,28 @@ window.manageUser = async function(uid2) {
   const snap = await getDoc(doc(db,'users',uid2));
   if (!snap.exists()) return;
   const u = snap.data();
-  if (u.role === 'Owner') return; // cannot touch Owner
+  if (u.role === 'Owner' || u.role === 'Senior Mod') return; // cannot touch Owner or Senior Mod
   const uname = u.username||u.email||'—';
   const now = Date.now();
   const isTempBanned = u.tempBannedUntil && (u.tempBannedUntil.seconds?u.tempBannedUntil.seconds*1000:new Date(u.tempBannedUntil).getTime()) > now;
   const isMuted = u.mutedUntil && (u.mutedUntil.seconds?u.mutedUntil.seconds*1000:new Date(u.mutedUntil).getTime()) > now;
 
   // Mod can only change role between Staff and User
-  const canChangeRole = u.role !== 'Mod' && u.role !== 'Owner';
+  const canChangeRole = u.role !== 'Senior Mod' && u.role !== 'Owner';
+  const isSeniorMod = role === 'Senior Mod';
   const roleHtml = canChangeRole
     ? `<div class="form-group">
-        <div class="form-label">Role <span style="color:var(--text-dim);font-size:9px">(Staff ↔ User only)</span></div>
+        <div class="form-label">Role</div>
         <select class="form-select" id="mRole">
           <option value="User"  ${u.role==='User'?'selected':''}>User</option>
           <option value="Staff" ${u.role==='Staff'?'selected':''}>⚡ Staff</option>
+          <option value="Mod"   ${u.role==='Mod'?'selected':''}>🛡 Mod</option>
+          ${isSeniorMod?`<option value="Senior Mod" ${u.role==='Senior Mod'?'selected':''}>✦ Senior Mod</option>`:''}
         </select>
       </div>`
     : `<div class="form-group"><div class="form-label">Role</div><div style="font-family:var(--mono);font-size:12px;color:var(--text-dim);padding:4px 0">${rolePill(u.role)} — cannot be changed</div></div>`;
 
+  const staffNotes = u.staffNotes||'';
   const history = (u.punishmentHistory||[]).slice(-6).reverse();
   const histHtml = history.length
     ? history.map(p=>`<div class="punish-item"><span class="punish-type text-warn">${p.type}</span><span style="color:var(--text-muted);font-size:12px;flex:1">${p.reason||'—'}</span><span class="punish-date">${ts(p.at)}</span></div>`).join('')
@@ -582,6 +586,8 @@ window.manageUser = async function(uid2) {
             <div id="mRuleHint"></div>
       </div>
       <div>
+        <div class="form-label" style="margin-bottom:6px">Staff Notes <span style="color:var(--text-dim);font-size:9px">(private — visible to Staff+ only)</span></div>
+        <textarea class="form-textarea" id="mStaffNotes" placeholder="Add private notes about this user..." style="min-height:60px;margin-bottom:12px">${escHtml(staffNotes)}</textarea>
         <div class="form-label" style="margin-bottom:8px">Punishment History</div>
         <div class="punish-list">${histHtml}</div>
       </div>

@@ -43,7 +43,7 @@
 (function(){
   const Q=[];
   const proxy=n=>function(){Q.push([n,arguments]);};
-  ['showPanel','manageUser','warnUser','muteUser','confirmWarn','confirmMute','closeModal'].forEach(n=>window[n]=proxy(n));
+  ['showPanel','manageUser','warnUser','muteUser','confirmWarn','confirmMute','closeModal','viewNotes','saveNotes'].forEach(n=>window[n]=proxy(n));
   window._staffDrain=function(){
     Q.forEach(([n,a])=>{if(typeof window[n]==='function'&&window[n].toString().indexOf('proxy')===-1)window[n](...a);});
   };
@@ -555,6 +555,7 @@ async function users() {
         <div class="flex-gap-sm">
           <button class="btn btn-sm btn-warn" onclick="warnUser('${uid2}','${escHtml(uname)}')">Warn</button>
           <button class="btn btn-sm" onclick="muteUser('${uid2}','${escHtml(uname)}')">Mute</button>
+          ${u.staffNotes?`<button class="btn btn-sm" onclick="viewNotes('${uid2}','${escHtml(uname)}')" style="border-color:rgba(20,184,166,.4);color:#14b8a6" title="${escHtml(u.staffNotes.slice(0,40))}">📋 Notes</button>`:''}
         </div>
       </td>
     </tr>`;
@@ -570,6 +571,26 @@ async function users() {
 
 
 
+
+window.viewNotes = async function(uid2, uname) {
+  const snap = await getDoc(doc(db,'users',uid2));
+  const notes = snap.exists() ? (snap.data().staffNotes||'') : '';
+  openModal(`<div class="modal-title">📋 Staff Notes: ${uname}</div>
+    <div class="form-group">
+      <label class="form-label">Notes <span style="color:var(--text-dim);font-size:9px">(private — not visible to users)</span></label>
+      <textarea class="form-textarea" id="sNotesText" placeholder="Add notes about this user..." style="min-height:80px">${escHtml(notes)}</textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveNotes('${uid2}')">Save Notes</button>
+    </div>`);
+};
+
+window.saveNotes = async function(uid2) {
+  const notes = document.getElementById('sNotesText')?.value.trim()||'';
+  await updateDoc(doc(db,'users',uid2),{staffNotes:notes});
+  closeModal();
+};
 
 window.warnUser = function(uid2, uname) {
   openModal(`<div class="modal-title">⚠️ Warn: ${uname}</div>
@@ -699,7 +720,10 @@ async function mytickets() {
       : t.priority==='medium'
       ? '<span style="font-family:var(--mono);font-size:9px;background:rgba(210,153,34,0.15);color:var(--warn);padding:1px 6px;border-radius:2px;margin-left:5px">MED</span>' : '';
     return `<tr>
-      <td><span style="cursor:pointer;color:var(--text);font-weight:600" onclick="openTicket('${id}')">${escHtml(t.subject||'—')}</span>${pp}</td>
+      <td>
+        <span style="cursor:pointer;color:var(--text);font-weight:600" onclick="openTicket('${id}')">${escHtml(t.subject||'—')}</span>${pp}
+        ${t.category==='ban_appeal'?'<span style="font-family:var(--mono);font-size:8px;background:rgba(248,81,73,.15);color:var(--danger);padding:1px 6px;border-radius:4px;margin-left:5px;font-weight:700">BAN APPEAL</span>':t.category==='mute_appeal'?'<span style="font-family:var(--mono);font-size:8px;background:rgba(210,153,34,.15);color:var(--warn);padding:1px 6px;border-radius:4px;margin-left:5px;font-weight:700">MUTE APPEAL</span>':''}
+      </td>
       <td class="mono" style="font-size:11px">${t.createdBy||'—'}</td>
       <td><span class="pill ${sp}">${t.status||'open'}</span></td>
       <td class="mono" style="font-size:11px">${ts(t.timestamp)}</td>
