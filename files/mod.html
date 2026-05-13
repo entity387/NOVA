@@ -75,6 +75,7 @@
 })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>window.addEventListener("load",()=>{if(window.emailjs)emailjs.init("G7xmtT6VrVzxi1rfJ");});</script>
 <script type="module">
 import { initializeApp }    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -724,7 +725,8 @@ const EMAILJS_TEMPLATE = 'template_tqg0gnq';
 const EMAILJS_KEY      = 'G7xmtT6VrVzxi1rfJ';
 const ALERT_EMAILS     = ['rhys.doughty@pgs.vic.edu.au','rhys97337@gmail.com'];
 async function sendAlert(subject, body) {
-  if(!window.emailjs)return;
+  console.log('sendAlert called:', subject);
+  if(!window.emailjs){console.warn('EmailJS not loaded');return;}
   const alerts = [
     { service:'service_tk338nf', email:'rhys.doughty@pgs.vic.edu.au' },
     { service:'service_xvsbbbr',  email:'rhys97337@gmail.com' },

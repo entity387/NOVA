@@ -676,6 +676,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);display:flex;f
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>window.addEventListener("load",()=>{if(window.emailjs)emailjs.init("G7xmtT6VrVzxi1rfJ");});</script>
 </head>
 <body>
 
@@ -952,7 +953,7 @@ onAuthStateChanged(auth, async user => {
   const settSnap = await getDoc(doc(db,'settings','global'));
   if (settSnap.exists()) {
     const s = settSnap.data();
-    if (s.emergency && !['Owner','Senior Mod'].includes(ME.role)) { showLockoutOverlay('🚨','EMERGENCY SHUTDOWN', s.emergencyMessage||'System locked.'); return; }
+    if (s.emergency && !['Owner','Senior Mod'].includes(ME.role)) { showLockoutOverlay('🚨','EMERGENCY LOCKDOWN', s.emergencyMessage||'System locked.'); return; }
     if (s.maintenance && !['Owner','Senior Mod'].includes(effectiveRole()) && !_simRole) { showLockoutOverlay('🔧','MAINTENANCE MODE', s.maintenanceMessage||'System under maintenance.'); return; }
     _lastSettings = s;
   }
@@ -1026,7 +1027,7 @@ function watchSettings() {
     voiceMode = s.voiceMode||'agora';
     const tag = document.getElementById('voiceModeTag');
     if (tag) { tag.style.display=''; if(voiceMode==='webrtc'){tag.className='voice-mode-tag vmt-webrtc';tag.textContent='WebRTC';}else{tag.className='voice-mode-tag vmt-agora';tag.textContent='Agora';} }
-    if (s.emergency && !['Owner','Senior Mod'].includes(ME.role)) { await leaveVoice(); showLockoutOverlay('🚨','EMERGENCY SHUTDOWN',s.emergencyMessage||'System locked.'); return; }
+    if (s.emergency && !['Owner','Senior Mod'].includes(ME.role)) { await leaveVoice(); showLockoutOverlay('🚨','EMERGENCY LOCKDOWN',s.emergencyMessage||'System locked.'); return; }
     if (s.maintenance && !['Owner','Senior Mod'].includes(effectiveRole()) && !_simRole) { await leaveVoice(); showLockoutOverlay('🔧','MAINTENANCE MODE',s.maintenanceMessage||'System under maintenance.'); return; }
     const lockout = document.getElementById('_lockoutOverlay'); if (lockout) lockout.remove();
     updateDebugHud(s.debug);
@@ -1873,7 +1874,8 @@ const EMAILJS_KEY      = 'G7xmtT6VrVzxi1rfJ';   // replace after setup
 const ALERT_EMAILS     = ['rhys.doughty@pgs.vic.edu.au','rhys97337@gmail.com'];
 
 async function sendAlert(subject, body) {
-  if(!window.emailjs)return;
+  console.log('sendAlert called:', subject);
+  if(!window.emailjs){console.warn('EmailJS not loaded');return;}
   const alerts = [
     { service:'service_tk338nf', email:'rhys.doughty@pgs.vic.edu.au' },
     { service:'service_xvsbbbr',  email:'rhys97337@gmail.com' },

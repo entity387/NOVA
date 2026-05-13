@@ -78,6 +78,7 @@
 })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>window.addEventListener("load",()=>{if(window.emailjs)emailjs.init("G7xmtT6VrVzxi1rfJ");});</script>
 <script type="module">
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -605,7 +606,8 @@ const EMAILJS_TEMPLATE = 'template_tqg0gnq';
 const EMAILJS_KEY      = 'G7xmtT6VrVzxi1rfJ';
 const ALERT_EMAILS     = ['rhys.doughty@pgs.vic.edu.au','rhys97337@gmail.com'];
 async function sendAlert(subject, body) {
-  if(!window.emailjs)return;
+  console.log('sendAlert called:', subject);
+  if(!window.emailjs){console.warn('EmailJS not loaded');return;}
   const alerts = [
     { service:'service_tk338nf', email:'rhys.doughty@pgs.vic.edu.au' },
     { service:'service_xvsbbbr',  email:'rhys97337@gmail.com' },
@@ -990,17 +992,16 @@ async function settings() {
   document.getElementById('mainContent').innerHTML=`
   <div class="panel"><div class="panel-title">System Settings</div>
     <div class="card">
-      <div class="toggle-row"><div><div class="toggle-label">Maintenance Mode</div><div class="toggle-desc">Only Owner &amp; Mods can access.</div></div><label class="toggle"><input type="checkbox" ${s.maintenance?'checked':''} onchange="saveSetting('maintenance',this.checked)"><span class="toggle-slider"></span></label></div>
-      <div class="toggle-row"><div><div class="toggle-label">Emergency Shutdown</div><div class="toggle-desc">Only Owner can access.</div></div><label class="toggle"><input type="checkbox" ${s.emergency?'checked':''} onchange="saveSetting('emergency',this.checked)"><span class="toggle-slider"></span></label></div>
+      <div class="toggle-row"><div><div class="toggle-label">Maintenance Mode</div><div class="toggle-desc">Blocks all users below Senior Mod from accessing chat.</div></div><label class="toggle"><input type="checkbox" ${s.maintenance?'checked':''} onchange="saveSetting('maintenance',this.checked)"><span class="toggle-slider"></span></label></div>
       <div class="toggle-row"><div><div class="toggle-label">Debug Mode</div><div class="toggle-desc">Requires maintenance mode.</div></div><label class="toggle"><input type="checkbox" ${s.debug?'checked':''} ${!s.maintenance?'disabled':''} onchange="saveSetting('debug',this.checked)"><span class="toggle-slider"></span></label></div>
       <div class="toggle-row"><div><div class="toggle-label">Force WebRTC Fallback</div><div class="toggle-desc">Disables Agora, uses WebRTC (6 person cap).</div></div><label class="toggle"><input type="checkbox" ${s.voiceMode==='webrtc'?'checked':''} onchange="saveSetting('voiceMode',this.checked?'webrtc':'agora')"><span class="toggle-slider"></span></label></div>
       <div class="toggle-row"><div><div class="toggle-label">🕹 Disable Arcade</div><div class="toggle-desc">Blocks all users from accessing the arcade.</div></div><label class="toggle"><input type="checkbox" ${s.arcadeDisabled?'checked':''} onchange="saveSetting('arcadeDisabled',this.checked)"><span class="toggle-slider"></span></label></div>
-      <div class="toggle-row" style="border:1px solid rgba(248,81,73,.2);border-radius:8px;padding:10px 12px;background:rgba(248,81,73,.04)"><div><div class="toggle-label" style="color:var(--danger)">🔒 Lockdown Mode</div><div class="toggle-desc">Locks out all users below Senior Mod. Sends you an email alert when triggered by anyone.</div></div><label class="toggle"><input type="checkbox" ${s.emergency?'checked':''} onchange="toggleLockdown(this.checked)"><span class="toggle-slider"></span></label></div>
+      <div class="toggle-row" style="border:1px solid rgba(248,81,73,.2);border-radius:8px;padding:10px 12px;background:rgba(248,81,73,.04)"><div><div class="toggle-label" style="color:var(--danger)">🔒 Emergency Lockdown</div><div class="toggle-desc">Blocks everyone except Owner and Senior Mods. Sends an email alert when triggered.</div></div><label class="toggle"><input type="checkbox" ${s.emergency?'checked':''} onchange="toggleLockdown(this.checked)"><span class="toggle-slider"></span></label></div>
     </div>
     <div class="mb-20"></div>
     <div class="card">
       <div class="form-group"><label class="form-label">Maintenance Message</label><input class="form-input" id="sMaintMsg" value="${s.maintenanceMessage||''}"></div>
-      <div class="form-group"><label class="form-label">Emergency Message</label><input class="form-input" id="sEmergMsg" value="${s.emergencyMessage||''}"></div>
+      <div class="form-group"><label class="form-label">Lockdown Message</label><input class="form-input" id="sEmergMsg" value="${s.emergencyMessage||'🔒 The server is currently in lockdown. Please wait for staff to resolve the situation.'}"></div>
       <button class="btn btn-primary" onclick="saveMessages()">Save Messages</button>
     </div>
   </div>`;
