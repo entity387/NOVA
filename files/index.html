@@ -938,7 +938,7 @@ window.doRegister = async function() {
       email, role:'User', username,
       warningsCount:0, banned:false, tempBannedUntil:null,
       mutedUntil:null, pfp:'', pingCount:0, punishmentHistory:[], theme:'midnight',
-      og: isOG, signupNumber: currentCount + 1,
+      og: isOG, signupNumber: currentCount + 1, joinedAt: Date.now(),
     });
     await auth.signOut();
     closeRegister();

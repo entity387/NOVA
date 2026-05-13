@@ -81,7 +81,7 @@ import { initializeApp }    from "https://www.gstatic.com/firebasejs/10.12.0/fir
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, collection, doc, getDocs, getDoc, addDoc, updateDoc,
-  deleteDoc, query, orderBy, limit, onSnapshot, arrayUnion
+  deleteDoc, query, orderBy, limit, where, onSnapshot, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -184,11 +184,13 @@ function buildStaffSelect(staffUsers, currentAssigned) {
 // ══════════════════════════════════════════════════════════
 async function overview() {
   document.getElementById('mainContent').innerHTML = '<div class="empty">Loading...</div>';
-  const [tSnap, lSnap, aSnap, settSnap2] = await Promise.all([
+  const [tSnap, lSnap, appealSnap, raidSnap, settSnap2, recentUsersSnap] = await Promise.all([
     getDocs(collection(db,'tickets')),
     getDocs(query(collection(db,'logs'), orderBy('timestamp','desc'), limit(8))),
-    getDocs(query(collection(db,'channels','devalerts','messages'), orderBy('timestamp','desc'), limit(5))),
+    getDocs(query(collection(db,'tickets'), where('category','in',['ban_appeal','mute_appeal']), orderBy('timestamp','desc'), limit(5))),
+    getDocs(query(collection(db,'logs'), where('action','>=','Triggered'), orderBy('action'), orderBy('timestamp','desc'), limit(3))),
     getDoc(doc(db,'settings','global')),
+    getDocs(query(collection(db,'users'), where('joinedAt','>',Date.now()-10*60*1000), orderBy('joinedAt','desc'))),
   ]);
   const lkActive = settSnap2.exists()&&settSnap2.data().emergency;
   const open   = tSnap.docs.filter(d=>d.data().status==='open').length;
@@ -200,10 +202,18 @@ async function overview() {
     return `<div class="log-entry"><span class="log-time">${ts(l.timestamp)}</span><span class="log-user">${l.user||'—'}</span><span class="log-action">${l.action}</span></div>`;
   }).join('') || '<div class="empty">No logs</div>';
 
-  const alertRows = aSnap.docs.map(d => {
-    const a=d.data();
-    return `<div class="alert-entry"><div class="alert-meta"><span class="alert-sender">${a.sender||'—'}</span><span class="alert-time">${ts(a.timestamp)}</span></div><div class="alert-text">${a.text||''}</div></div>`;
-  }).join('') || '<div class="empty">No alerts</div>';
+  // Build alert rows for overview
+  const alertItems = [];
+  const recentJoins = recentUsersSnap.docs.length;
+  if(recentJoins >= 5){
+    alertItems.push({ ts: Date.now(), html:`<div class="alert-entry" style="border-left:3px solid #e040fb"><div class="alert-meta"><span style="font-family:var(--mono);font-size:9px;font-weight:700;color:#e040fb;background:rgba(224,64,251,.12);padding:1px 7px;border-radius:8px">🚨 POSSIBLE RAID</span></div><div class="alert-text"><strong>${recentJoins} new accounts</strong> in last 10 min</div></div>`});
+  } else if(recentJoins >= 3){
+    alertItems.push({ ts: Date.now(), html:`<div class="alert-entry" style="border-left:3px solid var(--warn)"><div class="alert-meta"><span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--warn);background:rgba(210,153,34,.12);padding:1px 7px;border-radius:8px">⚠ SUSPICIOUS</span></div><div class="alert-text"><strong>${recentJoins} new accounts</strong> in last 10 min</div></div>`});
+  }
+  raidSnap.docs.forEach(d=>{const l=d.data();alertItems.push({ts:l.timestamp,html:`<div class="alert-entry" style="border-left:3px solid #e040fb"><div class="alert-meta"><span style="font-family:var(--mono);font-size:9px;font-weight:700;color:#e040fb;background:rgba(224,64,251,.1);padding:1px 7px;border-radius:8px">🔒 LOCKDOWN</span><span class="alert-time">${ts(l.timestamp)}</span></div><div class="alert-text">${escHtml(l.action||'')}</div></div>`});});
+  appealSnap.docs.forEach(d=>{const t=d.data();const isBan=t.category==='ban_appeal';const color=isBan?'var(--danger)':'var(--warn)';alertItems.push({ts:t.timestamp,html:`<div class="alert-entry" style="border-left:3px solid ${color}"><div class="alert-meta"><span style="font-family:var(--mono);font-size:9px;font-weight:700;color:${color};padding:1px 7px;border-radius:8px">${isBan?'🚫 Ban Appeal':'🔇 Mute Appeal'}</span><span class="alert-time">${ts(t.timestamp)}</span></div><div class="alert-text">${escHtml(t.createdByUsername||'?')} — ${escHtml((t.subject||'').slice(0,40))}</div></div>`});});
+  alertItems.sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const alertRows = alertItems.length ? alertItems.slice(0,5).map(a=>a.html).join('') : '<div class="empty">No alerts</div>';
 
   document.getElementById('mainContent').innerHTML = `
   <div class="panel">
@@ -928,35 +938,99 @@ async function logs() {
 // ══════════════════════════════════════════════════════════
 async function alerts() {
   document.getElementById('mainContent').innerHTML = '<div class="empty">Loading...</div>';
-  const snap = await getDocs(query(collection(db,'channels','devalerts','messages'), orderBy('timestamp','desc'), limit(50)));
-  const rows = snap.docs.map(d => {
-    const a=d.data();
-    return `<div class="alert-entry"><div class="alert-meta"><span class="alert-sender">${a.sender||'—'}</span><span class="alert-time">${ts(a.timestamp)}</span></div><div class="alert-text">${a.text||''}</div></div>`;
-  }).join('') || '<div class="empty">No alerts</div>';
+  const now = Date.now();
+  const tenMins = now - 10*60*1000;
+  const oneHour = now - 60*60*1000;
+  const oneDaySec = now - 24*60*60*1000;
+
+  const [appealSnap, lockSnap, recentUsersSnap, recentBansSnap] = await Promise.all([
+    // Ban/mute appeals
+    getDocs(query(collection(db,'tickets'), where('category','in',['ban_appeal','mute_appeal']), orderBy('timestamp','desc'), limit(25))),
+    // Lockdown events
+    getDocs(query(collection(db,'logs'), where('action','>=','Triggered'), orderBy('action'), orderBy('timestamp','desc'), limit(10))),
+    // Recent signups for raid detection
+    getDocs(query(collection(db,'users'), where('joinedAt','>',tenMins), orderBy('joinedAt','desc'))),
+    // Recent perm bans in last 24h (unusual spike could indicate abuse)
+    getDocs(query(collection(db,'logs'), where('action','>=','Permanently banned'), orderBy('action'), orderBy('timestamp','desc'), limit(10))),
+  ]);
+
+  const items = [];
+
+  // 🚨 RAID DETECTION — 5+ signups in 10 minutes
+  const recentJoins = recentUsersSnap.docs.length;
+  if(recentJoins >= 5){
+    items.push({ ts: now, priority: 0, html: `
+      <div class="alert-entry" style="border-left:3px solid #e040fb">
+        <div class="alert-meta">
+          <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:#e040fb;background:rgba(224,64,251,.12);padding:1px 7px;border-radius:8px">🚨 POSSIBLE RAID</span>
+          <span class="alert-time">Now</span>
+        </div>
+        <div class="alert-text"><strong>${recentJoins} new accounts</strong> created in the last 10 minutes. Consider triggering Emergency Lockdown.</div>
+      </div>`
+    });
+  }
+
+  // ⚠ SUSPICIOUS — 3-4 signups in 10 mins (warning level)
+  else if(recentJoins >= 3){
+    items.push({ ts: now, priority: 1, html: `
+      <div class="alert-entry" style="border-left:3px solid var(--warn)">
+        <div class="alert-meta">
+          <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--warn);background:rgba(210,153,34,.12);padding:1px 7px;border-radius:8px">⚠ SUSPICIOUS</span>
+          <span class="alert-time">Now</span>
+        </div>
+        <div class="alert-text"><strong>${recentJoins} new accounts</strong> in the last 10 minutes. Monitor closely.</div>
+      </div>`
+    });
+  }
+
+  // 🔒 Lockdown events
+  lockSnap.docs.forEach(d => {
+    const l = d.data();
+    items.push({ ts: l.timestamp, priority: 1, html: `
+      <div class="alert-entry" style="border-left:3px solid #e040fb">
+        <div class="alert-meta">
+          <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:#e040fb;background:rgba(224,64,251,.1);padding:1px 7px;border-radius:8px">🔒 LOCKDOWN</span>
+          <span class="alert-sender">${escHtml(l.user||'?')}</span>
+          <span class="alert-time">${ts(l.timestamp)}</span>
+        </div>
+        <div class="alert-text">${escHtml(l.action||'')}</div>
+      </div>`
+    });
+  });
+
+  // 🚫 Ban/mute appeals
+  appealSnap.docs.forEach(d => {
+    const t = d.data(); const tid = d.id;
+    const isBan = t.category === 'ban_appeal';
+    const color = isBan ? 'var(--danger)' : 'var(--warn)';
+    const bg    = isBan ? 'rgba(248,81,73,.1)' : 'rgba(210,153,34,.1)';
+    const label = isBan ? '🚫 Ban Appeal' : '🔇 Mute Appeal';
+    items.push({ ts: t.timestamp, priority: 2, html: `
+      <div class="alert-entry" style="cursor:pointer;border-left:3px solid ${color}" onclick="openTicket('${tid}')">
+        <div class="alert-meta">
+          <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:${color};background:${bg};padding:1px 7px;border-radius:8px">${label}</span>
+          <span class="alert-sender">${escHtml(t.createdByUsername||t.createdBy||'?')}</span>
+          <span class="alert-time">${ts(t.timestamp)}</span>
+          ${t.status==='open'?'<span style="font-family:var(--mono);font-size:8px;color:var(--success);background:rgba(63,185,80,.1);padding:1px 6px;border-radius:8px">OPEN</span>':''}
+        </div>
+        <div class="alert-text">${escHtml(t.subject||'No subject')} — <span style="color:var(--text-muted)">${escHtml((t.message||'').slice(0,80))}${(t.message||'').length>80?'…':''}</span></div>
+      </div>`
+    });
+  });
+
+  // Sort by priority then timestamp
+  items.sort((a,b) => a.priority-b.priority || (b.ts||0)-(a.ts||0));
+  const rows = items.length ? items.map(i=>i.html).join('') : '<div class="empty">No alerts</div>';
+
   document.getElementById('mainContent').innerHTML = `
   <div class="panel">
-    <div class="section-header">
-      <div class="panel-title">Mod Alerts</div>
-      <button class="btn btn-primary" onclick="postAlert()">+ Post Alert</button>
+    <div class="panel-title">◬ Alerts</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
+      Live suspicious activity, ban/mute appeals, and lockdown events. Click an appeal to open the ticket.
     </div>
     <div class="card" style="padding:0">${rows}</div>
   </div>`;
 }
-
-window.postAlert = () => openModal(`
-  <div class="modal-title">Post Alert</div>
-  <div class="form-group"><label class="form-label">Message</label><textarea class="form-textarea" id="mAlertText"></textarea></div>
-  <div class="modal-actions">
-    <button class="btn" onclick="closeModal()">Cancel</button>
-    <button class="btn btn-primary" onclick="sendAlert()">Post</button>
-  </div>`);
-
-window.sendAlert = async function() {
-  const text = document.getElementById('mAlertText').value.trim(); if (!text) return;
-  await addDoc(collection(db,'channels','devalerts','messages'), { text, sender:email, timestamp:Date.now() });
-  await writeLog('Posted alert');
-  closeModal(); alerts();
-};
 
 overview();
 // ── MY TICKETS ────────────────────────────────────────────
