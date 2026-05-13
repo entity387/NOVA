@@ -71,7 +71,7 @@
   const Q=[];
   const proxy=n=>function(){Q.push([n,arguments]);};
   ['showPanel','manageUser','warnUser','confirmWarn','permBan','confirmPermBan',
-   'saveUser','closeModal','deleteChannel','editChannel','updateChannel','pickChanEmoji'].forEach(n=>window[n]=proxy(n));
+   'saveUser','closeModal','deleteChannel','editChannel','updateChannel','pickChanEmoji','toggleLockdown'].forEach(n=>window[n]=proxy(n));
   window._ownerDrain=function(){
     Q.forEach(([n,a])=>{if(typeof window[n]==='function'&&window[n].toString().indexOf('proxy')===-1)window[n](...a);});
   };
@@ -1006,6 +1006,21 @@ async function settings() {
     </div>
   </div>`;
 }
+window.toggleLockdown = async function(on) {
+  if(on){
+    await setDoc(doc(db,'settings','global'),{
+      emergency:true,
+      emergencyMessage:'🔒 Server is in lockdown. Please wait for staff to resolve the situation.',
+      lockdownTriggeredBy:email,lockdownAt:Date.now()
+    },{merge:true});
+    await writeLog('Triggered EMERGENCY LOCKDOWN');
+    sendAlert('Emergency Lockdown Activated','NOVA Emergency Lockdown was activated.\n\n• By: '+email+'\n• Time: '+new Date().toLocaleString()+'\n\nOnly Owner and Senior Mods can access NOVA.');
+  } else {
+    await setDoc(doc(db,'settings','global'),{emergency:false,lockdownTriggeredBy:'',lockdownAt:0},{merge:true});
+    await writeLog('Lifted EMERGENCY LOCKDOWN');
+  }
+  settings();
+};
 window.saveSetting = async (key,val) => {
   if(key==='debug'){const s=await getDoc(doc(db,'settings','global'));if(!s.data()?.maintenance&&val){alert('Debug requires maintenance mode.');settings();return;}}
   await setDoc(doc(db,'settings','global'),{[key]:val},{merge:true});
