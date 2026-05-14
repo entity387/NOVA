@@ -43,7 +43,7 @@
 (function(){
   const Q=[];
   const proxy=n=>function(){Q.push([n,arguments]);};
-  ['showPanel','manageUser','warnUser','muteUser','confirmWarn','confirmMute','closeModal','viewNotes','saveNotes'].forEach(n=>window[n]=proxy(n));
+  ['showPanel','manageUser','warnUser','muteUser','confirmWarn','confirmMute','closeModal','viewNotes','saveNotes','staffAppealAction'].forEach(n=>window[n]=proxy(n));
   window._staffDrain=function(){
     Q.forEach(([n,a])=>{if(typeof window[n]==='function'&&window[n].toString().indexOf('proxy')===-1)window[n](...a);});
   };
@@ -127,8 +127,9 @@ async function tickets() {
   snap.docs.forEach(d => {
     const t = d.data();
     const el = t.escalationLevel || 'none';
-    // Staff don't see tickets escalated to Mod or Owner
+    // Staff don't see tickets escalated to Mod or Owner, or ban appeals
     if (el === 'staff_to_mod' || el === 'mod_to_owner') return;
+    if (t.category === 'ban_appeal') return; // ban appeals go to Mod
     const s = t.status || 'open';
     if (!groups[s]) groups[s] = [];
     groups[s].push({ ...t, id:d.id });
@@ -184,49 +185,49 @@ window.assignToSelf = async function(id) {
 
 const PUNISHMENT_GUIDE = {
   "01": { label:"Be Respectful", rows:[
-    { sev:"low",      eg:"Minor rude comment",              staff:"Warn",             mod:"Warn" },
-    { sev:"medium",   eg:"Targeted insults / harassment",   staff:"Warn + Mute 1h",   mod:"Warn + Mute" },
-    { sev:"high",     eg:"Sustained hate speech / slurs",   staff:"Alert Mod ⚠",      mod:"Temp Ban 24h" },
+    { sev:"low",      eg:"Minor rude comment",              staff:"Warn",                       mod:"Warn" },
+    { sev:"medium",   eg:"Targeted insults / harassment",   staff:"Warn + Mute 1h",             mod:"Warn + Mute 2h" },
+    { sev:"high",     eg:"Sustained hate speech / slurs",   staff:"Alert Mod ⚠",                mod:"Temp Ban 3d" },
   ]},
   "02": { label:"No Spam", rows:[
-    { sev:"low",      eg:"Repeated messages",               staff:"Warn",             mod:"Warn" },
-    { sev:"medium",   eg:"Flooding a channel",              staff:"Mute 1h",          mod:"Mute + Warn" },
-    { sev:"high",     eg:"Bot spam / raid",                 staff:"Alert Mod ⚠",      mod:"Temp Ban" },
+    { sev:"low",      eg:"Repeated messages",               staff:"Warn",                       mod:"Warn" },
+    { sev:"medium",   eg:"Flooding a channel",              staff:"Mute 1h",                    mod:"Mute 2h + Warn" },
+    { sev:"high",     eg:"Bot spam / raid",                 staff:"Alert Mod ⚠",                mod:"Temp Ban 7d" },
   ]},
   "03": { label:"No NSFW Content", rows:[
-    { sev:"medium",   eg:"Inappropriate image or link",     staff:"Warn",             mod:"Warn + Mute 1h" },
-    { sev:"high",     eg:"Explicit content",                staff:"Alert Mod ⚠",      mod:"Temp Ban 24h" },
-    { sev:"critical", eg:"CSAM or illegal content",         staff:"Alert Mod ⚠",      mod:"Perm Ban + log" },
+    { sev:"medium",   eg:"Inappropriate image or link",     staff:"Warn",                       mod:"Warn + Mute 6h" },
+    { sev:"high",     eg:"Explicit content",                staff:"Alert Mod ⚠",                mod:"Temp Ban 7d" },
+    { sev:"critical", eg:"CSAM or illegal content",         staff:"Alert Owner 🚨",              mod:"Perm Ban + log" },
   ]},
   "04": { label:"No Advertising", rows:[
-    { sev:"low",      eg:"Casual mention of own project",   staff:"Warn",             mod:"Warn" },
-    { sev:"medium",   eg:"Posting invite links or ads",     staff:"Warn + Mute 1h",   mod:"Mute + Warn" },
-    { sev:"high",     eg:"Repeated or scam links",          staff:"Alert Mod ⚠",      mod:"Temp Ban" },
+    { sev:"low",      eg:"Casual mention of own project",   staff:"Warn",                       mod:"Warn" },
+    { sev:"medium",   eg:"Posting invite links or ads",     staff:"Warn + Mute 1h",             mod:"Mute 3h + Warn" },
+    { sev:"high",     eg:"Repeated or scam links",          staff:"Alert Mod ⚠",                mod:"Temp Ban 3d" },
   ]},
   "05": { label:"No Doxxing", rows:[
-    { sev:"high",     eg:"Sharing someone's private info",  staff:"Alert Mod ⚠",      mod:"Temp Ban 7d" },
-    { sev:"critical", eg:"Coordinated doxxing or threats",  staff:"Alert Mod ⚠",      mod:"Perm Ban" },
+    { sev:"high",     eg:"Sharing someone's private info",  staff:"Alert Mod ⚠",                mod:"Temp Ban 14d" },
+    { sev:"critical", eg:"Coordinated doxxing or threats",  staff:"Alert Mod ⚠",                mod:"Perm Ban" },
   ]},
   "06": { label:"Not Following Staff", rows:[
-    { sev:"low",      eg:"Ignored one warning",             staff:"Warn",             mod:"Warn" },
-    { sev:"medium",   eg:"Repeatedly ignoring staff",       staff:"Mute 1h",          mod:"Mute + Warn" },
-    { sev:"high",     eg:"Openly defying moderation",       staff:"Alert Mod ⚠",      mod:"Temp Ban" },
+    { sev:"low",      eg:"Ignored one warning",             staff:"Warn",                       mod:"Warn" },
+    { sev:"medium",   eg:"Repeatedly ignoring staff",       staff:"Mute 1h",                    mod:"Mute 3h + Warn" },
+    { sev:"high",     eg:"Openly defying moderation",       staff:"Alert Mod ⚠",                mod:"Temp Ban 1d" },
   ]},
   "07": { label:"Ban / Mute Evasion", rows:[
-    { sev:"high",     eg:"Alt account while muted",         staff:"Alert Mod ⚠",      mod:"Temp Ban both" },
-    { sev:"critical", eg:"Alt account while banned",        staff:"Alert Mod ⚠",      mod:"Perm Ban all accounts" },
+    { sev:"high",     eg:"Alt account while muted",         staff:"Alert Mod ⚠",                mod:"Temp Ban 7d (both accounts)" },
+    { sev:"critical", eg:"Alt account while banned",        staff:"Alert Mod ⚠",                mod:"Perm Ban all accounts" },
   ]},
   "08": { label:"English Only in General", rows:[
-    { sev:"low",      eg:"Occasional non-English",          staff:"Remind",           mod:"Remind" },
-    { sev:"medium",   eg:"Repeatedly ignoring reminder",    staff:"Warn",             mod:"Warn + Mute 1h" },
+    { sev:"low",      eg:"Occasional non-English",          staff:"Remind",                     mod:"Remind" },
+    { sev:"medium",   eg:"Repeatedly ignoring reminder",    staff:"Warn",                       mod:"Warn + Mute 1h" },
   ]},
   "09": { label:"Minimodding", rows:[
-    { sev:"low",      eg:"Casually calling out users",      staff:"Remind",           mod:"Remind" },
-    { sev:"medium",   eg:"Issuing fake warnings publicly",  staff:"Warn",             mod:"Warn" },
+    { sev:"low",      eg:"Casually calling out users",      staff:"Remind",                     mod:"Remind" },
+    { sev:"medium",   eg:"Issuing fake warnings publicly",  staff:"Warn",                       mod:"Warn" },
   ]},
   "__hacking__": { label:"Hacking / Exploiting", rows:[
-    { sev:"critical", eg:"Exploiting platform code or bugs",staff:"Alert Mod ⚠ — Mod alerts Owner 🚨", mod:"Perm Ban + Alert Owner 🚨" },
-    { sev:"critical", eg:"Attempting to compromise accounts",staff:"Alert Mod ⚠ — Mod alerts Owner 🚨",mod:"Perm Ban + Alert Owner 🚨" },
+    { sev:"critical", eg:"Exploiting platform code or bugs",staff:"Perm Ban + Alert Owner 🚨",  mod:"Perm Ban + Alert Owner 🚨" },
+    { sev:"critical", eg:"Attempting to compromise accounts",staff:"Perm Ban + Alert Owner 🚨", mod:"Perm Ban + Alert Owner 🚨" },
   ]},
 };
 
@@ -392,6 +393,28 @@ if(window._staffDrain)window._staffDrain();
 };
 
 // Open ticket modal — Staff can only see chat if assigned to them
+window.staffAppealAction = async function(ticketId, action, uid, username) {
+  if (!uid) { alert('Cannot find user.'); return; }
+  if (action === 'unmute') {
+    if (!confirm(`Unmute ${username}?`)) return;
+    await updateDoc(doc(db,'users',uid), { mutedUntil: null });
+    await updateDoc(doc(db,'tickets',ticketId), { status:'closed', appealOutcome:'approved' });
+    await addDoc(collection(db,'tickets',ticketId,'chat'), {
+      text:`✅ Appeal approved — ${username} has been unmuted by ${email}.`,
+      senderUid:'system',senderEmail:'NOVA System',senderUsername:'NOVA System',senderRole:'System',timestamp:Date.now(),system:true
+    });
+    closeModal(); tickets();
+  } else if (action === 'deny') {
+    if (!confirm(`Deny ${username}'s mute appeal?`)) return;
+    await updateDoc(doc(db,'tickets',ticketId), { status:'closed', appealOutcome:'denied' });
+    await addDoc(collection(db,'tickets',ticketId,'chat'), {
+      text:`❌ Appeal denied — your mute will remain. If you believe this is unfair, you may escalate to a Mod.`,
+      senderUid:'system',senderEmail:'NOVA System',senderUsername:'NOVA System',senderRole:'System',timestamp:Date.now(),system:true
+    });
+    closeModal(); tickets();
+  }
+};
+
 window.openTicket = async function(id) {
   const snap = await getDoc(doc(db,'tickets',id));
   if (!snap.exists()) return;
@@ -399,6 +422,14 @@ window.openTicket = async function(id) {
   const isAssignedToMe = t.assignedTo === email;
   const canEscalate    = t.escalationLevel === 'none' && t.status !== 'closed';
   const sp = {open:'pill-open',in_progress:'pill-progress',closed:'pill-closed'}[t.status]||'pill-none';
+  const isMuteAppeal = t.category === 'mute_appeal';
+  let appealUser = null;
+  if (isMuteAppeal && t.createdByUid) {
+    const uSnap = await getDoc(doc(db,'users',t.createdByUid));
+    if (uSnap.exists()) appealUser = { uid: t.createdByUid, ...uSnap.data() };
+  }
+  const now = Date.now();
+  const isMuted = appealUser && appealUser.mutedUntil && (appealUser.mutedUntil.seconds ? appealUser.mutedUntil.seconds*1000 : new Date(appealUser.mutedUntil).getTime()) > now;
 
   openModal(`
     <div class="modal-title">Ticket: ${escHtml(t.subject||'—')}</div>
@@ -455,6 +486,16 @@ window.openTicket = async function(id) {
       💬 Ticket chat is only visible when this ticket is assigned to you
     </div>`}
 
+    ${isMuteAppeal ? `<div style="padding:12px 14px;background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.2);border-radius:8px;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div style="font-size:12px;color:var(--text-muted)">
+        🔇 Mute Appeal — <strong>${escHtml(t.createdByUsername||t.createdBy||'?')}</strong>
+        ${isMuted?' · <span style="color:var(--warn)">Currently Muted</span>':' · <span style="color:var(--success)">Not currently muted</span>'}
+      </div>
+      <div style="display:flex;gap:8px">
+        ${isMuted?`<button class="btn" style="background:rgba(63,185,80,.15);border-color:rgba(63,185,80,.4);color:var(--success)" onclick="staffAppealAction('${id}','unmute','${t.createdByUid||''}','${escHtml(t.createdByUsername||'')}')">✅ Unmute</button>`:''}
+        <button class="btn" style="background:rgba(248,81,73,.1);border-color:rgba(248,81,73,.3);color:var(--danger)" onclick="staffAppealAction('${id}','deny','${t.createdByUid||''}','${escHtml(t.createdByUsername||'')}')">❌ Deny Appeal</button>
+      </div>
+    </div>` : ''}
     <div class="modal-actions">
       <button class="btn" onclick="closeModal()">Close</button>
       ${canEscalate ? `<button class="btn btn-warn" onclick="escalateToMod('${id}')">Escalate to Mod</button>` : ''}
@@ -645,6 +686,9 @@ window.muteUser = function(uid2, uname) {
       <label class="form-label">Duration</label>
       <select class="form-select" id="mMuteDur">
         <option value="3600000">1 hour</option>
+        <option value="7200000">2 hours</option>
+        <option value="10800000">3 hours</option>
+        <option value="21600000">6 hours</option>
         <option value="86400000">24 hours</option>
         <option value="604800000">7 days</option>
       </select>

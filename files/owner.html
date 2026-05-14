@@ -72,7 +72,7 @@
   const Q=[];
   const proxy=n=>function(){Q.push([n,arguments]);};
   ['showPanel','manageUser','warnUser','confirmWarn','permBan','confirmPermBan',
-   'saveUser','closeModal','deleteChannel','editChannel','updateChannel','pickChanEmoji','toggleLockdown','ownerReviewApp'].forEach(n=>window[n]=proxy(n));
+   'saveUser','closeModal','deleteChannel','editChannel','updateChannel','pickChanEmoji','toggleLockdown','ownerReviewApp','ownerAppealAction'].forEach(n=>window[n]=proxy(n));
   window._ownerDrain=function(){
     Q.forEach(([n,a])=>{if(typeof window[n]==='function'&&window[n].toString().indexOf('proxy')===-1)window[n](...a);});
   };
@@ -287,6 +287,15 @@ window.openTicket = async function(id) {
   const assignable = await loadAssignableUsers();
   const sp = {open:'pill-open',in_progress:'pill-progress',closed:'pill-closed'}[t.status]||'pill-none';
   const ep = {none:'pill-none',staff_to_mod:'pill-s2m',mod_to_owner:'pill-m2o'}[t.escalationLevel]||'pill-none';
+  const isAppeal = t.category === 'ban_appeal' || t.category === 'mute_appeal';
+  let appealUser = null;
+  if (isAppeal && t.createdByUid) {
+    const uSnap = await getDoc(doc(db,'users',t.createdByUid));
+    if (uSnap.exists()) appealUser = { uid: t.createdByUid, ...uSnap.data() };
+  }
+  const now = Date.now();
+  const isMuted = appealUser && appealUser.mutedUntil && (appealUser.mutedUntil.seconds ? appealUser.mutedUntil.seconds*1000 : new Date(appealUser.mutedUntil).getTime()) > now;
+  const isBanned = appealUser && (appealUser.banned || (appealUser.tempBannedUntil && (appealUser.tempBannedUntil.seconds ? appealUser.tempBannedUntil.seconds*1000 : new Date(appealUser.tempBannedUntil).getTime()) > now));
 
   openModal(`
     <div class="modal-title">Ticket: ${t.subject||'—'}</div>
@@ -337,6 +346,20 @@ window.openTicket = async function(id) {
       </div>
     </div>
 
+    ${isAppeal ? `<div style="padding:12px 14px;background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.2);border-radius:8px;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div style="font-size:12px;color:var(--text-muted)">
+        ${t.category==='mute_appeal'?'🔇 Mute Appeal':'🚫 Ban Appeal'} —
+        <strong>${escHtml(t.createdByUsername||t.createdBy||'?')}</strong>
+        ${isMuted?' · <span style="color:var(--warn)">Currently Muted</span>':''}
+        ${isBanned?' · <span style="color:var(--danger)">Currently Banned</span>':''}
+        ${!isMuted&&!isBanned?' · <span style="color:var(--success)">No active punishment</span>':''}
+      </div>
+      <div style="display:flex;gap:8px">
+        ${isMuted?`<button class="btn" style="background:rgba(63,185,80,.15);border-color:rgba(63,185,80,.4);color:var(--success)" onclick="ownerAppealAction('${id}','unmute','${t.createdByUid||''}','${escHtml(t.createdByUsername||'')}')">✅ Unmute</button>`:''}
+        ${isBanned?`<button class="btn" style="background:rgba(63,185,80,.15);border-color:rgba(63,185,80,.4);color:var(--success)" onclick="ownerAppealAction('${id}','unban','${t.createdByUid||''}','${escHtml(t.createdByUsername||'')}')">✅ Unban</button>`:''}
+        <button class="btn" style="background:rgba(248,81,73,.1);border-color:rgba(248,81,73,.3);color:var(--danger)" onclick="ownerAppealAction('${id}','deny','${t.createdByUid||''}','${escHtml(t.createdByUsername||'')}')">❌ Deny Appeal</button>
+      </div>
+    </div>` : ''}
     <div class="modal-actions">
       <button class="btn" onclick="closeModal()">Cancel</button>
       <button class="btn btn-danger" onclick="closeTicket('${id}')">Close &amp; Delete Ticket</button>
@@ -398,6 +421,40 @@ window.saveTicket = async function(id) {
   await updateDoc(doc(db,'tickets',id), data);
   await writeLog(`Updated ticket ${id}`);
   closeModal(); tickets();
+};
+
+window.ownerAppealAction = async function(ticketId, action, uid, username) {
+  if (!uid) { alert('Cannot find user.'); return; }
+  if (action === 'unmute') {
+    if (!confirm(`Unmute ${username}?`)) return;
+    await updateDoc(doc(db,'users',uid), { mutedUntil: null });
+    await updateDoc(doc(db,'tickets',ticketId), { status:'closed', appealOutcome:'approved' });
+    await addDoc(collection(db,'tickets',ticketId,'chat'), {
+      text:`✅ Appeal approved — ${username} has been unmuted by ${email}.`,
+      senderUid:'system',senderEmail:'NOVA System',senderUsername:'NOVA System',senderRole:'System',timestamp:Date.now(),system:true
+    });
+    await writeLog(`Appeal approved: unmuted ${username}`);
+    closeModal(); tickets();
+  } else if (action === 'unban') {
+    if (!confirm(`Unban ${username}?`)) return;
+    await updateDoc(doc(db,'users',uid), { banned:false, tempBannedUntil:null });
+    await updateDoc(doc(db,'tickets',ticketId), { status:'closed', appealOutcome:'approved' });
+    await addDoc(collection(db,'tickets',ticketId,'chat'), {
+      text:`✅ Appeal approved — ${username} has been unbanned by ${email}.`,
+      senderUid:'system',senderEmail:'NOVA System',senderUsername:'NOVA System',senderRole:'System',timestamp:Date.now(),system:true
+    });
+    await writeLog(`Appeal approved: unbanned ${username}`);
+    closeModal(); tickets();
+  } else if (action === 'deny') {
+    if (!confirm(`Deny ${username}'s appeal?`)) return;
+    await updateDoc(doc(db,'tickets',ticketId), { status:'closed', appealOutcome:'denied' });
+    await addDoc(collection(db,'tickets',ticketId,'chat'), {
+      text:`❌ Appeal denied — your punishment will remain. If you have further questions, please contact an Owner.`,
+      senderUid:'system',senderEmail:'NOVA System',senderUsername:'NOVA System',senderRole:'System',timestamp:Date.now(),system:true
+    });
+    await writeLog(`Appeal denied for ${username}`);
+    closeModal(); tickets();
+  }
 };
 
 window.closeTicket = async function(id) {
@@ -489,6 +546,9 @@ window.manageUser = async function(uid2) {
           <select class="form-select" id="mMuteDur">
             <option value="">No mute</option>
             <option value="3600000">1 hour</option>
+            <option value="7200000">2 hours</option>
+            <option value="10800000">3 hours</option>
+            <option value="21600000">6 hours</option>
             <option value="86400000">24 hours</option>
             <option value="604800000">7 days</option>
           </select>
@@ -497,9 +557,10 @@ window.manageUser = async function(uid2) {
           <div class="form-label">Temp Ban Duration</div>
           <select class="form-select" id="mTempBan">
             <option value="">No temp ban</option>
-            <option value="3600000">1 hour</option>
-            <option value="86400000">24 hours</option>
+            <option value="86400000">1 day</option>
+            <option value="259200000">3 days</option>
             <option value="604800000">7 days</option>
+            <option value="1209600000">14 days</option>
             <option value="2592000000">30 days</option>
           </select>
         </div>
@@ -718,49 +779,49 @@ window.ownerReviewApp = async function(aid, status, uid, username) {
 
 const PUNISHMENT_GUIDE = {
   "01": { label:"Be Respectful", rows:[
-    { sev:"low",      eg:"Minor rude comment",              staff:"Warn",             mod:"Warn" },
-    { sev:"medium",   eg:"Targeted insults / harassment",   staff:"Warn + Mute 1h",   mod:"Warn + Mute" },
-    { sev:"high",     eg:"Sustained hate speech / slurs",   staff:"Alert Mod ⚠",      mod:"Temp Ban 24h" },
+    { sev:"low",      eg:"Minor rude comment",              staff:"Warn",                       mod:"Warn" },
+    { sev:"medium",   eg:"Targeted insults / harassment",   staff:"Warn + Mute 1h",             mod:"Warn + Mute 2h" },
+    { sev:"high",     eg:"Sustained hate speech / slurs",   staff:"Alert Mod ⚠",                mod:"Temp Ban 3d" },
   ]},
   "02": { label:"No Spam", rows:[
-    { sev:"low",      eg:"Repeated messages",               staff:"Warn",             mod:"Warn" },
-    { sev:"medium",   eg:"Flooding a channel",              staff:"Mute 1h",          mod:"Mute + Warn" },
-    { sev:"high",     eg:"Bot spam / raid",                 staff:"Alert Mod ⚠",      mod:"Temp Ban" },
+    { sev:"low",      eg:"Repeated messages",               staff:"Warn",                       mod:"Warn" },
+    { sev:"medium",   eg:"Flooding a channel",              staff:"Mute 1h",                    mod:"Mute 2h + Warn" },
+    { sev:"high",     eg:"Bot spam / raid",                 staff:"Alert Mod ⚠",                mod:"Temp Ban 7d" },
   ]},
   "03": { label:"No NSFW Content", rows:[
-    { sev:"medium",   eg:"Inappropriate image or link",     staff:"Warn",             mod:"Warn + Mute 1h" },
-    { sev:"high",     eg:"Explicit content",                staff:"Alert Mod ⚠",      mod:"Temp Ban 24h" },
-    { sev:"critical", eg:"CSAM or illegal content",         staff:"Alert Owner 🚨",    mod:"Perm Ban + log" },
+    { sev:"medium",   eg:"Inappropriate image or link",     staff:"Warn",                       mod:"Warn + Mute 6h" },
+    { sev:"high",     eg:"Explicit content",                staff:"Alert Mod ⚠",                mod:"Temp Ban 7d" },
+    { sev:"critical", eg:"CSAM or illegal content",         staff:"Alert Owner 🚨",              mod:"Perm Ban + log" },
   ]},
   "04": { label:"No Advertising", rows:[
-    { sev:"low",      eg:"Casual mention of own project",   staff:"Warn",             mod:"Warn" },
-    { sev:"medium",   eg:"Posting invite links or ads",     staff:"Warn + Mute 1h",   mod:"Mute + Warn" },
-    { sev:"high",     eg:"Repeated or scam links",          staff:"Alert Mod ⚠",      mod:"Temp Ban" },
+    { sev:"low",      eg:"Casual mention of own project",   staff:"Warn",                       mod:"Warn" },
+    { sev:"medium",   eg:"Posting invite links or ads",     staff:"Warn + Mute 1h",             mod:"Mute 3h + Warn" },
+    { sev:"high",     eg:"Repeated or scam links",          staff:"Alert Mod ⚠",                mod:"Temp Ban 3d" },
   ]},
   "05": { label:"No Doxxing", rows:[
-    { sev:"high",     eg:"Sharing someone's private info",  staff:"Alert Mod ⚠",      mod:"Temp Ban 7d" },
-    { sev:"critical", eg:"Coordinated doxxing or threats",  staff:"Alert Mod ⚠",      mod:"Perm Ban" },
+    { sev:"high",     eg:"Sharing someone's private info",  staff:"Alert Mod ⚠",                mod:"Temp Ban 14d" },
+    { sev:"critical", eg:"Coordinated doxxing or threats",  staff:"Alert Mod ⚠",                mod:"Perm Ban" },
   ]},
   "06": { label:"Not Following Staff", rows:[
-    { sev:"low",      eg:"Ignored one warning",             staff:"Warn",             mod:"Warn" },
-    { sev:"medium",   eg:"Repeatedly ignoring staff",       staff:"Mute 1h",          mod:"Mute + Warn" },
-    { sev:"high",     eg:"Openly defying moderation",       staff:"Alert Mod ⚠",      mod:"Temp Ban" },
+    { sev:"low",      eg:"Ignored one warning",             staff:"Warn",                       mod:"Warn" },
+    { sev:"medium",   eg:"Repeatedly ignoring staff",       staff:"Mute 1h",                    mod:"Mute 3h + Warn" },
+    { sev:"high",     eg:"Openly defying moderation",       staff:"Alert Mod ⚠",                mod:"Temp Ban 1d" },
   ]},
   "07": { label:"Ban / Mute Evasion", rows:[
-    { sev:"high",     eg:"Alt account while muted",         staff:"Alert Mod ⚠",      mod:"Temp Ban both" },
-    { sev:"critical", eg:"Alt account while banned",        staff:"Alert Mod ⚠",      mod:"Perm Ban all accounts" },
+    { sev:"high",     eg:"Alt account while muted",         staff:"Alert Mod ⚠",                mod:"Temp Ban 7d (both accounts)" },
+    { sev:"critical", eg:"Alt account while banned",        staff:"Alert Mod ⚠",                mod:"Perm Ban all accounts" },
   ]},
   "08": { label:"English Only in General", rows:[
-    { sev:"low",      eg:"Occasional non-English",          staff:"Remind",           mod:"Remind" },
-    { sev:"medium",   eg:"Repeatedly ignoring reminder",    staff:"Warn",             mod:"Warn + Mute 1h" },
+    { sev:"low",      eg:"Occasional non-English",          staff:"Remind",                     mod:"Remind" },
+    { sev:"medium",   eg:"Repeatedly ignoring reminder",    staff:"Warn",                       mod:"Warn + Mute 1h" },
   ]},
   "09": { label:"Minimodding", rows:[
-    { sev:"low",      eg:"Casually calling out users",      staff:"Remind",           mod:"Remind" },
-    { sev:"medium",   eg:"Issuing fake warnings publicly",  staff:"Warn",             mod:"Warn" },
+    { sev:"low",      eg:"Casually calling out users",      staff:"Remind",                     mod:"Remind" },
+    { sev:"medium",   eg:"Issuing fake warnings publicly",  staff:"Warn",                       mod:"Warn" },
   ]},
   "__hacking__": { label:"Hacking / Exploiting", rows:[
-    { sev:"critical", eg:"Exploiting platform code or bugs",staff:"Perm Ban + Alert Owner 🚨",    mod:"Perm Ban + Alert Owner 🚨" },
-    { sev:"critical", eg:"Attempting to compromise accounts",staff:"Perm Ban + Alert Owner 🚨",   mod:"Perm Ban + Alert Owner 🚨" },
+    { sev:"critical", eg:"Exploiting platform code or bugs",staff:"Perm Ban + Alert Owner 🚨",  mod:"Perm Ban + Alert Owner 🚨" },
+    { sev:"critical", eg:"Attempting to compromise accounts",staff:"Perm Ban + Alert Owner 🚨", mod:"Perm Ban + Alert Owner 🚨" },
   ]},
 };
 
