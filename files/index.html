@@ -538,6 +538,7 @@ input::placeholder { color: rgba(72,79,88,0.8); }
     <div class="lockout-icon" id="lockoutIcon">🔒</div>
     <div class="lockout-title" id="lockoutTitle">SYSTEM LOCKED</div>
     <div class="lockout-msg" id="lockoutMsg">Access restricted.</div>
+    <div id="lockoutAppealWrap" style="display:none;margin-top:20px;display:none"></div>
   </div>
 </div>
 
@@ -611,7 +612,7 @@ input::placeholder { color: rgba(72,79,88,0.8); }
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, addDoc, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyClEfbrTpSwVPpThWZJukobJN9tCKMXTx4",
@@ -814,6 +815,72 @@ function showLockout(icon, title, msg) {
   document.getElementById('lockoutOverlay').style.display = 'flex';
 }
 
+function showLockoutAppeal(uid, userData, category) {
+  const wrap = document.getElementById('lockoutAppealWrap');
+  if (!wrap) return;
+  wrap.style.cssText = 'display:block;margin-top:20px';
+  wrap.innerHTML = `<button onclick="openAppealModal('${uid}','${userData.email||''}','${(userData.username||userData.email||'').replace(/'/g,"\\'")}','${category}')"
+    style="background:none;border:1px solid rgba(248,81,73,.4);color:#f85149;font-size:13px;font-weight:600;padding:10px 24px;border-radius:10px;cursor:pointer;font-family:inherit">
+    🎫 Submit Appeal
+  </button>`;
+}
+
+let _appealDb = null;
+function openAppealModal(uid, email, username, category) {
+  document.querySelectorAll('#_appealModal').forEach(e=>e.remove());
+  const el = document.createElement('div');
+  el.id = '_appealModal';
+  el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(8px)';
+  el.innerHTML = `
+    <div style="background:#161b22;border:1px solid #21262d;border-radius:12px;padding:26px;width:92%;max-width:440px;box-shadow:0 12px 40px rgba(0,0,0,.5)">
+      <div style="font-family:monospace;font-size:10px;letter-spacing:3px;color:#8b949e;text-transform:uppercase;margin-bottom:14px;padding-bottom:11px;border-bottom:1px solid #21262d">🎫 Submit Appeal</div>
+      <div style="padding:10px 12px;background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.2);border-radius:8px;font-size:12px;color:#8b949e;line-height:1.6;margin-bottom:14px">
+        Be honest and explain your situation clearly. Abusing the appeal system may result in further punishment.
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:1px;font-family:monospace;display:block;margin-bottom:4px">Subject</label>
+        <input id="appealSubject" value="Ban Appeal — ${username}" style="width:100%;background:#0d1117;border:1px solid #21262d;border-radius:8px;color:#e6edf3;font-size:13px;padding:8px 11px;outline:none;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:1px;font-family:monospace;display:block;margin-bottom:4px">Explain your situation *</label>
+        <textarea id="appealMessage" placeholder="Explain what happened, why you think the punishment was unfair, and what you'll do differently..." style="width:100%;background:#0d1117;border:1px solid #21262d;border-radius:8px;color:#e6edf3;font-size:13px;padding:8px 11px;outline:none;min-height:110px;resize:vertical;box-sizing:border-box;font-family:inherit"></textarea>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button onclick="document.getElementById('_appealModal').remove()" style="background:none;border:1px solid #21262d;color:#8b949e;padding:7px 16px;border-radius:8px;cursor:pointer;font-size:12px">Cancel</button>
+        <button id="appealSubmitBtn" onclick="submitLoginAppeal('${uid}','${email}','${username}','${category}')" style="background:linear-gradient(135deg,#7c3aed,#a855f7);border:none;color:#fff;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">Submit Appeal</button>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+}
+
+async function submitLoginAppeal(uid, email, username, category) {
+  const subject = document.getElementById('appealSubject')?.value.trim();
+  const message = document.getElementById('appealMessage')?.value.trim();
+  if (!message || message.length < 10) { alert('Please explain your situation in more detail.'); return; }
+  const btn = document.getElementById('appealSubmitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Submitting...'; }
+  try {
+    const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, collection, addDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const fbCfg = {apiKey:"AIzaSyClEfbrTpSwVPpThWZJukobJN9tCKMXTx4",authDomain:"nova-7a26f.firebaseapp.com",projectId:"nova-7a26f"};
+    const app = getApps().length ? getApps()[0] : initializeApp(fbCfg);
+    const db2 = getFirestore(app);
+    await addDoc(collection(db2,'tickets'), {
+      subject: subject || ('Ban Appeal — ' + username),
+      message, priority:'high', category,
+      createdBy: email, createdByUid: uid, createdByUsername: username,
+      assignedTo:'', status:'open', timestamp: Date.now(),
+      escalationLevel:'none', escalationReason:'', escalatedBy:''
+    });
+    document.getElementById('_appealModal')?.remove();
+    const wrap = document.getElementById('lockoutAppealWrap');
+    if (wrap) wrap.innerHTML = '<div style="color:#3fb950;font-size:13px;margin-top:4px;font-family:monospace">✅ Appeal submitted — we\'ll review it soon.</div>';
+  } catch(e) {
+    alert('Failed: ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit Appeal'; }
+  }
+}
+
 // ── LOGIN ─────────────────────────────────────────────────
 window.doLogin = async function() {
   hideMessages();
@@ -841,7 +908,8 @@ window.doLogin = async function() {
     const role = userData.role || 'User';
 
     if (userData.banned) {
-      showError('Your account has been permanently banned.');
+      showLockout('⛔','PERMANENTLY BANNED','Your account has been permanently banned from NOVA.');
+      showLockoutAppeal(cred.user.uid, userData, 'ban_appeal');
       btn.disabled=false; btn.classList.remove('loading'); btn.textContent='Login'; setStatus(''); return;
     }
 
@@ -850,7 +918,8 @@ window.doLogin = async function() {
         ? userData.tempBannedUntil.seconds * 1000
         : new Date(userData.tempBannedUntil).getTime();
       if (Date.now() < until) {
-        showError(`Temporarily banned until ${new Date(until).toLocaleString()}.`);
+        showLockout('🚫','TEMPORARILY BANNED',`You are banned until ${new Date(until).toLocaleString()}.`);
+        showLockoutAppeal(cred.user.uid, userData, 'ban_appeal');
         btn.disabled=false; btn.classList.remove('loading'); btn.textContent='Login'; setStatus(''); return;
       }
     }
