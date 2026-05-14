@@ -714,7 +714,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);display:flex;f
     <button class="btn-top btn-dashboard" id="dashBtn" style="display:none" onclick="goToDashboard()">⚙ Dashboard</button>
     <button class="btn-top" onclick="window.location.href='arcade.html'" style="background:var(--glow2);border-color:var(--accent);color:var(--accent2)">🕹 Arcade</button>
     <button class="btn-top" id="rapidBtn" style="display:none;background:rgba(248,81,73,.15);border-color:rgba(248,81,73,.4);color:var(--danger)" onclick="rapidResponse()">⚡ Rapid Response</button>
-    <button class="btn-top btn-ticket" onclick="openSubmitTicket()">🎫 Ticket</button>
+    <button class="btn-top btn-ticket" onclick="openSubmitTicket()">🎫 Appeal</button>
     <button class="btn-top" onclick="doSignOut()">Sign Out</button>
   </div>
 </div>
@@ -878,7 +878,7 @@ document.getElementById('messagesArea').innerHTML = `
 function showLockoutOverlay(icon, title, message) {
   const existing = document.getElementById('_lockoutOverlay');
   if (existing) existing.remove();
-  const isBan = title.includes('BANNED');
+  const isBan = title.includes('BANNED') || title.includes('TEMPORARILY BANNED') || title.includes('MUTED');
   const el = document.createElement('div');
   el.id = '_lockoutOverlay';
   el.innerHTML = `
@@ -888,7 +888,7 @@ function showLockoutOverlay(icon, title, message) {
       <div style="color:var(--text-muted);font-size:15px;line-height:1.7;margin-bottom:24px">${message}</div>
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
         <button onclick="doSignOut()" style="background:var(--grad);border:none;color:#fff;font-family:var(--ui);font-size:14px;font-weight:600;letter-spacing:2px;padding:12px 28px;border-radius:10px;cursor:pointer;text-transform:uppercase;box-shadow:0 4px 20px var(--glow)">Sign Out</button>
-        ${isBan?`<button onclick="openBanAppeal()" style="background:none;border:1px solid rgba(248,81,73,.4);color:var(--danger);font-family:var(--ui);font-size:13px;font-weight:600;padding:12px 28px;border-radius:10px;cursor:pointer">Submit Appeal</button>`:''}
+        ${isBan?`<button onclick="openBanAppeal()" style="background:none;border:1px solid rgba(248,81,73,.4);color:var(--danger);font-family:var(--ui);font-size:13px;font-weight:600;padding:12px 28px;border-radius:10px;cursor:pointer">🎫 Submit Appeal</button>`:''}
       </div>
     </div>`;
   document.body.appendChild(el);
@@ -1508,9 +1508,10 @@ async function loadApplicationsList(msgArea){
       const statusLabel=a.status==='accepted'?'✅ Accepted':a.status==='rejected'?'❌ Rejected':'⏳ Pending';
       return`<div style="background:var(--surface1);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-          <div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span style="font-size:14px;font-weight:700">${esc(a.username||a.email||'?')}</span>
-            <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-left:8px">${esc(a.email||'')}</span>
+            <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim)">${esc(a.email||'')}</span>
+            ${a.wasStaff?`<span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--warn);background:rgba(210,153,34,.15);border:1px solid rgba(210,153,34,.3);padding:2px 8px;border-radius:8px">⚠ Previously removed from staff</span>`:''}
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <span style="font-family:var(--mono);font-size:10px;color:${statusCol}">${statusLabel}</span>
@@ -1553,11 +1554,16 @@ window.submitApplication=async function(){
   // Check for existing application
   try{
     const existing=await getDocs(query(collection(db,'applications'),where('uid','==',ME.uid)));
-    if(!existing.empty){toast('You already have a pending or reviewed application.','var(--warn)');return;}
+    const hasPending=existing.docs.some(d=>d.data().status==='pending');
+    if(hasPending){toast('You already have a pending application under review.','var(--warn)');return;}
+    // Check if this user was previously a Staff/Mod (demoted)
+    const userSnap=await getDoc(doc(db,'users',ME.uid));
+    const userData=userSnap.exists()?userSnap.data():{};
+    const wasStaff=['Staff','Mod','Senior Mod'].some(r=>(userData.previousRoles||[]).includes(r))||false;
     await addDoc(collection(db,'applications'),{
       uid:ME.uid,email:ME.email,username:ME.username||ME.email,
       age,timezone,activity,why,experience,scenario,extra,
-      status:'pending',timestamp:Date.now()
+      status:'pending',timestamp:Date.now(),wasStaff,
     });
     document.getElementById('messagesArea').innerHTML=`<div style="max-width:480px;margin:60px auto;text-align:center;padding:24px">
       <div style="font-size:44px;margin-bottom:16px">📨</div>
@@ -2048,28 +2054,35 @@ async function sendTicketUserMsg2(ticketId,text){
 
 // ── SUBMIT TICKET ─────────────────────────────────────────
 window.openSubmitTicket=function(){
-  openModal(`<div class="modal-title">🎫 Submit a Ticket</div>
-    <div class="form-group"><label class="form-label">Category <span style="color:var(--danger)">*</span></label>
+  const now=Date.now();
+  const mutedUntil=ME.mutedUntil?(ME.mutedUntil.seconds?ME.mutedUntil.seconds*1000:new Date(ME.mutedUntil).getTime()):0;
+  const isMuted=mutedUntil>now;
+  openModal(`<div class="modal-title">🎫 Submit an Appeal</div>
+    <div style="padding:10px 12px;background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.2);border-radius:8px;font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:14px">
+      Appeals are reviewed by Mods and Owners. Be honest and explain your situation clearly. Abusing the appeal system may result in further punishment.
+    </div>
+    <div class="form-group"><label class="form-label">Appeal Type <span style="color:var(--danger)">*</span></label>
       <select class="form-select" id="tCategory" onchange="onTicketCategoryChange(this.value)">
-        <option value="" disabled selected>Select a category...</option>
-        <option value="general">💬 General Support</option>
-        <option value="bug">🐛 Bug Report</option>
+        <option value="" disabled selected>Select type...</option>
         <option value="mute_appeal">🔇 Mute Appeal</option>
         <option value="ban_appeal">🚫 Ban Appeal</option>
-        <option value="other">📋 Other</option>
       </select></div>
-    <div id="tAppealNotice" style="display:none;padding:10px 12px;background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.25);border-radius:8px;font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:2px">
-      ⚠️ Appeals are reviewed by Mods and Owners. Be honest and explain your situation clearly. Abusing the appeal system may result in further punishment.
-    </div>
-    <div class="form-group"><label class="form-label">Subject <span style="color:var(--danger)">*</span></label><input class="form-input" id="tSubject" placeholder="Brief description"></div>
-    <div class="form-group"><label class="form-label">Message <span style="color:var(--danger)">*</span></label><textarea class="form-textarea" id="tMessage" placeholder="Describe your issue..." style="min-height:100px"></textarea></div>
-    <div id="tPriorityWrap" class="form-group"><label class="form-label">Priority</label>
-      <select class="form-select" id="tPriority">
-        <option value="low">Low — General question</option>
-        <option value="medium" selected>Medium — Need help soon</option>
-        <option value="high">High — Urgent issue</option>
-      </select></div>
-    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="submitTicket()">Submit Ticket</button></div>`);
+    <div id="tAppealNotice" style="display:none"></div>
+    <div class="form-group"><label class="form-label">Subject <span style="color:var(--danger)">*</span></label>
+      <input class="form-input" id="tSubject" placeholder="e.g. Mute Appeal — username"></div>
+    <div class="form-group"><label class="form-label">Explain your situation <span style="color:var(--danger)">*</span></label>
+      <textarea class="form-textarea" id="tMessage" placeholder="Explain what happened, why you think the punishment was unfair, and what you'll do differently..." style="min-height:110px"></textarea></div>
+    <input type="hidden" id="tPriority" value="high">
+    <div id="tPriorityWrap" style="display:none"></div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="submitTicket()">Submit Appeal</button></div>`);
+  if(isMuted){
+    setTimeout(()=>{
+      const sel=document.getElementById('tCategory');
+      if(sel){sel.value='mute_appeal';onTicketCategoryChange('mute_appeal');}
+      const sub=document.getElementById('tSubject');
+      if(sub&&!sub.value)sub.value='Mute Appeal — '+(ME.username||ME.email||'');
+    },50);
+  }
 };
 
 window.onTicketCategoryChange=function(val){

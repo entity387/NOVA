@@ -643,9 +643,10 @@ async function applicationsPanel() {
       const statusLabel = a.status==='accepted'?'✅ Accepted':a.status==='rejected'?'❌ Rejected':'⏳ Pending';
       return `<div class="card" style="margin-bottom:14px;padding:16px 18px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-          <div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span style="font-size:14px;font-weight:700">${escHtml(a.username||a.email||'?')}</span>
-            <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-left:8px">${escHtml(a.email||'')}</span>
+            <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim)">${escHtml(a.email||'')}</span>
+            ${a.wasStaff?`<span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--warn);background:rgba(210,153,34,.15);border:1px solid rgba(210,153,34,.3);padding:2px 8px;border-radius:8px">⚠ Previously removed from staff</span>`:''}
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <span style="font-family:var(--mono);font-size:10px;color:${statusCol}">${statusLabel}</span>
@@ -937,6 +938,12 @@ window.saveUser = async function(uid2, uname) {
   if (mutingOrBanning && !reason) { alert('Please select a rule broken before applying a mute or temp ban.'); return; }
   const staffNotes = document.getElementById('mStaffNotes')?.value.trim()??'';
   const updates  = { role: newRole, staffNotes };
+  // If demoting from a staff role, record it
+  if(newRole && !['Staff','Mod','Senior Mod'].includes(newRole)){
+    const prevSnap=await getDoc(doc(db,'users',uid2));
+    const prevRole=prevSnap.exists()?prevSnap.data().role:'';
+    if(['Staff','Mod','Senior Mod'].includes(prevRole)) updates.previousRoles=arrayUnion(prevRole);
+  }
   const history  = [];
   if (muteDur) {
     const muteUntil = Date.now()+parseInt(muteDur);

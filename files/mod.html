@@ -701,9 +701,17 @@ window.saveUser = async function(uid2, uname, canChangeRole) {
   const reason  = getModReason()||''; if((document.getElementById('mMuteDur')?.value||document.getElementById('mTempBan')?.value)&&!reason)return;
   const muteDur = document.getElementById('mMuteDur').value;
   const tempDur = document.getElementById('mTempBan').value;
-  const updates = {};
+  const staffNotes = document.getElementById('mStaffNotes')?.value.trim()??'';
+  const newRole = canChangeRole ? document.getElementById('mRole').value : null;
+  const updates = { staffNotes };
+  if (newRole) updates.role = newRole;
+  // If demoting from a staff role, record it so future applications show a warning
+  if(newRole && !['Staff','Mod','Senior Mod'].includes(newRole)){
+    const prevSnap=await getDoc(doc(db,'users',uid2));
+    const prevRole=prevSnap.exists()?prevSnap.data().role:'';
+    if(['Staff','Mod','Senior Mod'].includes(prevRole)) updates.previousRoles=arrayUnion(prevRole);
+  }
   const history = [];
-  if (canChangeRole) updates.role = document.getElementById('mRole').value;
   if (muteDur) {
     const muteUntil = Date.now()+parseInt(muteDur);
     updates.mutedUntil = new Date(muteUntil);
