@@ -1750,7 +1750,8 @@ function renderMsgs(docs){
     const myHandle=(ME.username||ME.email||'').toLowerCase();
     const pinged=msg.text&&(msg.text.toLowerCase().includes('@'+myHandle)||msg.text.toLowerCase().includes('@everyone'));
     const canDel=isMe||['Owner','Senior Mod','Mod'].includes(effectiveRole());
-    const delBtn=canDel&&!msg.system?`<button class="mab danger" onclick="deleteMsg('${mid}')">Delete</button>`:'';
+    const canDelSystem=ME.role==='Owner';
+    const delBtn=canDel&&!msg.system?`<button class="mab danger" onclick="deleteMsg('${mid}')">Delete</button>`:canDelSystem&&msg.system?`<button class="mab danger" onclick="deleteMsg('${mid}')">Delete</button>`:'';
     const replyBtn=!msg.system?`<button class="mab" onclick="setReply('${mid}','${escAttr(msg.senderUsername||msg.senderEmail)}','${escAttr((msg.text||'').slice(0,80))}')">Reply</button>`:'';
     // Stacking — same sender within 5 minutes
     const isStacked = !msg.system && prevSender===msg.senderUid && !msg.replyTo && (ms-prevTime)<300000;
