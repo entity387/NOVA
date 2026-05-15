@@ -1681,7 +1681,11 @@ window.sendMsg = async function(){
   ta.value='';ta.style.height='';
 
   // ── Easter egg hooks ──
-  if(window.applySlashCmd) text=applySlashCmd(text);
+  if(window.applySlashCmd){
+    const result=applySlashCmd(text);
+    if(result===null) return; // /heart and similar show a page, don't send
+    text=result;
+  }
   if(window.applyMsgEasterEggs) text=applyMsgEasterEggs(text);
   if(window.checkNova&&checkNova(text)) setTimeout(pulseLogoGlow,200);
   if(window.checkMidnight&&checkMidnight()) text=text+' 🌙';
@@ -2608,6 +2612,39 @@ function playBoing(){
     o.start();o.stop(ctx.currentTime+0.4);
   }catch(_){}
 }
+
+// ── /heart PAGE ───────────────────────────────────────────
+SLASH_CMDS['/heart'] = function() {
+  const el = document.createElement('div');
+  el.id = '_heartPage';
+  el.style.cssText = 'position:fixed;inset:0;background:#0d1117;z-index:99998;display:flex;align-items:center;justify-content:center;overflow-y:auto;animation:fadeIn .6s ease';
+  el.innerHTML = `
+    <div style="max-width:600px;width:92%;padding:60px 24px;text-align:center">
+
+      <div style="font-size:36px;margin-bottom:32px;animation:ping 2s ease infinite">🤍</div>
+
+      <div style="background:#161b22;border:1px solid #21262d;border-radius:16px;padding:36px 32px;margin-bottom:20px;text-align:left">
+        <div style="font-family:monospace;font-size:9px;letter-spacing:3px;color:#484f58;text-transform:uppercase;margin-bottom:20px">A message from Silent</div>
+        <p style="font-size:15px;color:#e6edf3;line-height:1.9;margin:0">
+          I built NOVA because I wanted something that felt real — not just another chat app, but a place where people actually want to be. Every feature, every small detail, every late night spent fixing something that didn't quite work right was for you. The fact that you're here, reading this, means more to me than I could ever put into words. NOVA started as just an idea, and you made it something worth caring about. Thank you for being part of this. Genuinely.
+        </p>
+        <div style="margin-top:24px;font-family:monospace;font-size:12px;color:#484f58">— Silent</div>
+      </div>
+
+      <div style="background:#161b22;border:1px solid #21262d;border-radius:16px;padding:36px 32px;margin-bottom:32px;text-align:left">
+        <div style="font-family:monospace;font-size:9px;letter-spacing:3px;color:#484f58;text-transform:uppercase;margin-bottom:20px">A message from the NOVA Team</div>
+        <p style="font-size:15px;color:#e6edf3;line-height:1.9;margin:0">
+          Every community is built by the people in it. You chose to be here, and that choice doesn't go unnoticed. Whether you've been here since the beginning or just found your way in, you're part of something we're genuinely proud of. We put care into everything NOVA is and everything it's becoming — and it's all for you. From the bottom of our hearts, thank you for being here.
+        </p>
+        <div style="margin-top:24px;font-family:monospace;font-size:12px;color:#484f58">— The NOVA Team</div>
+      </div>
+
+      <button onclick="document.getElementById('_heartPage').remove()" style="background:none;border:1px solid #21262d;color:#484f58;font-size:12px;font-family:monospace;padding:8px 20px;border-radius:8px;cursor:pointer;letter-spacing:1px">close</button>
+
+    </div>`;
+  document.body.appendChild(el);
+  return null; // don't send a message
+};
 
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function escAttr(s){return String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;');}
