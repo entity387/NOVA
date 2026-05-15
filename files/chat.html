@@ -714,7 +714,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);display:flex;f
     <button class="btn-top btn-dashboard" id="dashBtn" style="display:none" onclick="goToDashboard()">⚙ Dashboard</button>
     <button class="btn-top" onclick="window.location.href='arcade.html'" style="background:var(--glow2);border-color:var(--accent);color:var(--accent2)">🕹 Arcade</button>
     <button class="btn-top" id="rapidBtn" style="display:none;background:rgba(248,81,73,.15);border-color:rgba(248,81,73,.4);color:var(--danger)" onclick="rapidResponse()">⚡ Rapid Response</button>
-    <button class="btn-top btn-ticket" onclick="openSubmitTicket()">🎫 Appeal</button>
+    <button class="btn-top btn-ticket" onclick="openTicketModal()">🎫 Ticket</button>
+    <button class="btn-top" id="appealBtn" style="display:none;background:rgba(248,81,73,.1);border-color:rgba(248,81,73,.3);color:var(--danger)" onclick="openSubmitTicket()">⚖️ Appeal</button>
     <button class="btn-top" onclick="doSignOut()">Sign Out</button>
   </div>
 </div>
@@ -997,6 +998,15 @@ function setupTopbar() {
   if (['Owner','Senior Mod','Mod','Staff'].includes(r)) document.getElementById('dashBtn').style.display='';
   const rBtn=document.getElementById('rapidBtn');
   if(rBtn)rBtn.style.display=r==='Senior Mod'?'':'none';
+  // Show appeal button only if user is currently muted or banned
+  const appealBtn=document.getElementById('appealBtn');
+  if(appealBtn){
+    const now=Date.now();
+    const mutedUntil=ME.mutedUntil?(ME.mutedUntil.seconds?ME.mutedUntil.seconds*1000:new Date(ME.mutedUntil).getTime()):0;
+    const tempBanUntil=ME.tempBannedUntil?(ME.tempBannedUntil.seconds?ME.tempBannedUntil.seconds*1000:new Date(ME.tempBannedUntil).getTime()):0;
+    const isPunished=(mutedUntil>now)||(tempBanUntil>now)||ME.banned;
+    appealBtn.style.display=isPunished?'':'none';
+  }
   document.getElementById('hudRealRole').textContent = r;
   document.getElementById('hudEmail').textContent = ME.email||'—';
 }
@@ -2053,6 +2063,30 @@ async function sendTicketUserMsg2(ticketId,text){
 }
 
 // ── SUBMIT TICKET ─────────────────────────────────────────
+window.openTicketModal=function(){
+  openModal(`<div class="modal-title">🎫 Contact Staff</div>
+    <div class="form-group">
+      <label class="form-label">Category <span style="color:var(--danger)">*</span></label>
+      <select class="form-select" id="tCategory">
+        <option value="" disabled selected>Select a category...</option>
+        <option value="general">💬 General Support</option>
+        <option value="bug">🐛 Bug Report</option>
+        <option value="other">📋 Other</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Subject <span style="color:var(--danger)">*</span></label>
+      <input class="form-input" id="tSubject" placeholder="Brief description"></div>
+    <div class="form-group"><label class="form-label">Message <span style="color:var(--danger)">*</span></label>
+      <textarea class="form-textarea" id="tMessage" placeholder="Describe your issue..." style="min-height:100px"></textarea></div>
+    <div class="form-group"><label class="form-label">Priority</label>
+      <select class="form-select" id="tPriority">
+        <option value="low">Low — General question</option>
+        <option value="medium" selected>Medium — Need help soon</option>
+        <option value="high">High — Urgent issue</option>
+      </select></div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="submitTicket()">Submit</button></div>`);
+};
+
 window.openSubmitTicket=function(){
   const now=Date.now();
   const mutedUntil=ME.mutedUntil?(ME.mutedUntil.seconds?ME.mutedUntil.seconds*1000:new Date(ME.mutedUntil).getTime()):0;
