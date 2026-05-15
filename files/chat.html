@@ -686,7 +686,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);display:flex;f
 <div class="topbar">
   <div class="topbar-left">
     <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
-    <span class="logo">NOVA</span>
+    <span class="logo" id="topbarLogo">NOVA</span>
     <span style="font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--text-dim)">chat</span>
   </div>
   <div class="topbar-right" style="position:relative">
@@ -1677,8 +1677,22 @@ window.cancelReply=()=>{replyTo=null;renderInput(currentChan?.type==='group');};
 // ── SEND ──────────────────────────────────────────────────
 window.sendMsg = async function(){
   const ta=document.getElementById('msgInput');if(!ta)return;
-  const text=ta.value.trim();if(!text)return;
+  let text=ta.value.trim();if(!text)return;
   ta.value='';ta.style.height='';
+
+  // ── Easter egg hooks ──
+  if(window.applySlashCmd) text=applySlashCmd(text);
+  if(window.applyMsgEasterEggs) text=applyMsgEasterEggs(text);
+  if(window.checkNova&&checkNova(text)) setTimeout(pulseLogoGlow,200);
+  if(window.checkMidnight&&checkMidnight()) text=text+' 🌙';
+
+  // Hello there → General Kenobi
+  if(window.checkHelloThere&&checkHelloThere(text)){
+    await addDoc(collection(db,currentChan.type==='channel'?`channels/${currentChan.id}/messages`:'dms/'+currentChan.id+'/messages'),{
+      text:'General Kenobi. 🤖',senderUid:'system',senderEmail:'NOVA',senderUsername:'NOVA',senderRole:'System',og:false,timestamp:Date.now()+500,system:true,
+    }).catch(()=>{});
+  }
+
   const msgData={
     text,senderUid:ME.uid,senderEmail:ME.email,
     senderUsername:ME.username||ME.email,
@@ -1849,7 +1863,7 @@ function memberRow(u, showPresenceDot=true){
   }
 
   const dimmed=presence==='offline'&&!isTempBanned&&!isMuted?'opacity:0.45;':'';
-  return`<div class="member-item" style="${dimmed}"><div class="member-av ${avCls(r)}" style="${isMuted||isTempBanned?'opacity:0.5;':''}">${avHtml}</div><span class="member-name" style="${nameStyle}">${esc(uname)}</span>${right}</div>`;
+  return`<div class="member-item" data-uid="${u.uid}" style="${dimmed}"><div class="member-av ${avCls(r)}" style="${isMuted||isTempBanned?'opacity:0.5;':''}">${avHtml}</div><span class="member-name" style="${nameStyle}">${esc(uname)}</span>${right}</div>`;
 }
 
 function updateMembers(){
@@ -2477,6 +2491,123 @@ function closeSidebarOnMobile() {
 }
 
 // ── UTILS ─────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+// EASTER EGGS
+// ══════════════════════════════════════════════════════════
+
+// ── CONFETTI ─────────────────────────────────────────────
+(()=>{const s=document.createElement('style');s.textContent='@keyframes confettiFall{to{transform:translateY(105vh) rotate(720deg);opacity:0}}@keyframes logoShake{0%,100%{transform:translate(0)}20%{transform:translate(-8px,4px)}40%{transform:translate(8px,-4px)}60%{transform:translate(-5px,5px)}80%{transform:translate(5px,-2px)}}';document.head.appendChild(s);})();
+
+function spawnConfetti(){
+  const colors=['#a855f7','#14b8a6','#f85149','#3fb950','#d4af37','#58a6ff'];
+  for(let i=0;i<80;i++){
+    const el=document.createElement('div');
+    el.style.cssText=`position:fixed;top:-10px;left:${Math.random()*100}vw;width:${6+Math.random()*6}px;height:${6+Math.random()*6}px;background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:2px;z-index:999999;pointer-events:none;animation:confettiFall ${1+Math.random()*2}s ease forwards;transform:rotate(${Math.random()*360}deg)`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),(3+Math.random()*2)*1000);
+  }
+}
+
+// ── KONAMI CODE ───────────────────────────────────────────
+const _konami=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+let _konamiIdx=0;
+document.addEventListener('keydown',e=>{
+  if(e.key===_konami[_konamiIdx]){_konamiIdx++;if(_konamiIdx===_konami.length){_konamiIdx=0;triggerKonami();}}else _konamiIdx=0;
+});
+function triggerKonami(){
+  const el=document.createElement('div');
+  el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:pointer';
+  el.innerHTML='<div style="font-family:monospace;font-size:52px;color:#a855f7;letter-spacing:8px;text-shadow:0 0 30px #a855f7;animation:ping 1.2s ease infinite">NOVA</div><div style="font-family:monospace;font-size:12px;color:#8b949e;letter-spacing:4px;margin-top:14px">★ CHEAT CODE ACTIVATED ★</div><div style="font-size:13px;color:#8b949e;margin-top:8px">you found it 👾</div><div style="margin-top:24px;font-family:monospace;font-size:11px;color:#484f58">click anywhere to close</div>';
+  el.onclick=()=>el.remove();
+  document.body.appendChild(el);
+  spawnConfetti();
+  setTimeout(()=>el?.remove(),10000);
+}
+
+// ── LOGO CLICK x5 ────────────────────────────────────────
+let _logoClicks=0,_logoTimer=null;
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#topbarLogo,.logo-text,#novaLogo'))return;
+  _logoClicks++;clearTimeout(_logoTimer);
+  _logoTimer=setTimeout(()=>_logoClicks=0,1500);
+  if(_logoClicks>=5){
+    _logoClicks=0;
+    document.body.style.animation='logoShake 0.5s ease';
+    setTimeout(()=>document.body.style.animation='',500);
+    spawnConfetti();
+    toast('✨ you found the secret!','#a855f7');
+  }
+});
+
+// ── SLASH COMMANDS ────────────────────────────────────────
+const SLASH_CMDS={
+  '/shrug':   m=>m+' \u00AF\\_(\u30C4)_/\u00AF',
+  '/tableflip':m=>'(\u256F\u00B0\u25A1\u00B0\uFF09\u256F\uFE35 \u253B\u2501\u253B'+(m?' '+m:''),
+  '/unflip':  m=>'\u252C\u2500\u252C \u30CE( \u309C-\u309C\u30CE)'+(m?' '+m:''),
+  '/reverse': m=>m.split('').reverse().join(''),
+  '/flip':    m=>m.split('').reverse().join(''),
+  '/mock':    m=>m.split('').map((c,i)=>i%2?c.toUpperCase():c.toLowerCase()).join(''),
+  '/clap':    m=>m.split(' ').join(' \uD83D\uDC4F '),
+  '/uwu':     m=>m.replace(/r/g,'w').replace(/R/g,'W').replace(/l/g,'w').replace(/L/g,'W').replace(/n([aeiou])/g,'ny$1').replace(/N([aeiou])/g,'Ny$1').replace(/ove/g,'uv').replace(/!/g,' uwu!').replace(/\./g,' owo.'),
+  '/big':     m=>m.split('').map(c=>{const o=c.codePointAt(0);return o>=33&&o<=126?String.fromCodePoint(o+65248):c;}).join(''),
+};
+window.applySlashCmd=function(text){
+  const cmd=Object.keys(SLASH_CMDS).find(c=>text.toLowerCase().startsWith(c));
+  if(!cmd)return text;
+  const rest=text.slice(cmd.length).trim();
+  return SLASH_CMDS[cmd](rest);
+};
+
+// ── AUTO REACTIONS ────────────────────────────────────────
+window.applyMsgEasterEggs=function(text){
+  if(/\bgg\b/i.test(text)) text=text+' \uD83C\uDFC6';
+  if(/\bsus\b/i.test(text)) text=text+' \uD83E\uDEF5';
+  return text;
+};
+
+// ── HELLO THERE ───────────────────────────────────────────
+window.checkHelloThere=function(text){
+  return text.trim().toLowerCase()==='hello there';
+};
+
+// ── MIDNIGHT MOON ─────────────────────────────────────────
+window.checkMidnight=function(){
+  const n=new Date();return n.getHours()===0&&n.getMinutes()===0;
+};
+
+// ── NOVA GLOW ─────────────────────────────────────────────
+window.checkNova=function(text){return /\bnova\b/i.test(text);};
+window.pulseLogoGlow=function(){
+  const logo=document.querySelector('#topbarLogo,.logo-text');
+  if(!logo)return;
+  logo.style.transition='text-shadow .3s';
+  logo.style.textShadow='0 0 20px #a855f7, 0 0 40px #7c3aed';
+  setTimeout(()=>{logo.style.textShadow='';},2000);
+};
+
+// ── AVATAR BOING (own avatar x3) ─────────────────────────
+let _avClicks=0,_avTimer=null;
+document.addEventListener('click',e=>{
+  const item=e.target.closest('.member-item[data-uid]');
+  if(!item||item.dataset.uid!==ME?.uid)return;
+  _avClicks++;clearTimeout(_avTimer);
+  _avTimer=setTimeout(()=>_avClicks=0,900);
+  if(_avClicks>=3){_avClicks=0;playBoing();}
+});
+function playBoing(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.type='sine';
+    o.frequency.setValueAtTime(900,ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(250,ctx.currentTime+0.35);
+    g.gain.setValueAtTime(0.25,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.4);
+    o.start();o.stop(ctx.currentTime+0.4);
+  }catch(_){}
+}
+
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function escAttr(s){return String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;');}
 </script>
