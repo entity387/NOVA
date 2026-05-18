@@ -1274,5 +1274,22 @@ async function mytickets() {
 
 if(window._ownerDrain)window._ownerDrain();
 </script>
+
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+  <button class="mobile-sidebar-btn" id="mobileSidebarBtn" onclick="toggleMobileSidebar()">☰</button>
+  <script>
+  function toggleMobileSidebar(){
+    document.querySelector('.sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('open');
+  }
+  function closeSidebar(){
+    document.querySelector('.sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('open');
+  }
+  // Close sidebar when nav button clicked on mobile
+  document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>{
+    if(window.innerWidth<=768) closeSidebar();
+  }));
+  </script>
 </body>
 </html>
