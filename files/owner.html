@@ -157,24 +157,25 @@ function rolePill(r) {
 // ── LOAD ASSIGNABLE USERS (for ticket assignment) ─────────
 async function loadAssignableUsers() {
   const snap = await getDocs(collection(db,'users'));
-  // Owner sees Mod + Staff
+  // Owner can assign to anyone in the team
   return snap.docs
     .map(d => ({ uid:d.id, ...d.data() }))
-    .filter(u => u.role==='Mod' || u.role==='Staff')
+    .filter(u => ['Senior Mod','Mod','Staff'].includes(u.role))
     .sort((a,b) => {
-      if (a.role==='Mod' && b.role!=='Mod') return -1;
-      if (b.role==='Mod' && a.role!=='Mod') return 1;
+      const order = {'Senior Mod':0,'Mod':1,'Staff':2};
+      if (order[a.role] !== order[b.role]) return order[a.role] - order[b.role];
       return (a.username||a.email).localeCompare(b.username||b.email);
     });
 }
 
 function buildAssignSelect(assignableUsers, currentAssigned) {
+  const roleLabel = u => u.role==='Senior Mod'?'✦ Senior Mod':u.role==='Mod'?'🛡 Mod':'⚡ Staff';
   const opts = assignableUsers.map(u =>
-    `<option value="${u.email}" ${currentAssigned===u.email?'selected':''}>${u.username||u.email} [${u.role}]</option>`
+    `<option value="${u.email}" ${currentAssigned===u.email?'selected':''}>${u.username||u.email} [${roleLabel(u)}]</option>`
   ).join('');
   return `<select class="form-select" id="mAssign">
     <option value="">Unassigned</option>
-    <option value="${email}" ${currentAssigned===email?'selected':''}>Myself [Owner]</option>
+    <option value="${email}" ${currentAssigned===email?'selected':''}>Myself [👑 Owner]</option>
     ${opts}
   </select>`;
 }
@@ -221,14 +222,14 @@ async function tickets() {
   const rows = snap.docs.map(d => {
     const t=d.data(); const id=d.id;
     const sp = {open:'pill-open',in_progress:'pill-progress',closed:'pill-closed'}[t.status]||'pill-none';
-    const ep = {none:'pill-none',staff_to_mod:'pill-s2m',mod_to_owner:'pill-m2o'}[t.escalationLevel]||'pill-none';
+    const ep = {none:'pill-none',staff_to_mod:'pill-s2m',mod_to_senior:'pill-s2m',senior_to_owner:'pill-m2o'}[t.escalationLevel]||'pill-none';
     const pp = t.priority==='high'?'<span style="font-family:var(--mono);font-size:9px;background:rgba(248,81,73,0.15);color:var(--danger);padding:1px 6px;border-radius:2px;margin-left:5px">HIGH</span>':t.priority==='medium'?'<span style="font-family:var(--mono);font-size:9px;background:rgba(210,153,34,0.15);color:var(--warn);padding:1px 6px;border-radius:2px;margin-left:5px">MED</span>':'';
     return `<tr>
       <td><span style="cursor:pointer;color:var(--text);font-weight:600" onclick="openTicket('${id}')">${t.subject||'—'}</span>${pp}</td>
       <td class="mono" style="font-size:11px">${t.createdBy||'—'}</td>
       <td><span class="pill ${sp}">${t.status||'—'}</span></td>
       <td class="mono" style="font-size:11px">${t.assignedTo||'—'}</td>
-      <td><span class="pill ${ep}">${t.escalationLevel||'none'}</span></td>
+      <td><span class="pill ${ep}">${t.({'none':'None','staff_to_mod':'Staff→Mod','mod_to_senior':'Mod→Senior','senior_to_owner':'Senior→Owner'}[t.escalationLevel]||t.escalationLevel||'none')}</span></td>
       <td class="mono" style="font-size:11px">${ts(t.timestamp)}</td>
       <td>
         <div class="flex-gap-sm">
@@ -286,7 +287,7 @@ window.openTicket = async function(id) {
   const t = snap.data();
   const assignable = await loadAssignableUsers();
   const sp = {open:'pill-open',in_progress:'pill-progress',closed:'pill-closed'}[t.status]||'pill-none';
-  const ep = {none:'pill-none',staff_to_mod:'pill-s2m',mod_to_owner:'pill-m2o'}[t.escalationLevel]||'pill-none';
+  const ep = {none:'pill-none',staff_to_mod:'pill-s2m',mod_to_senior:'pill-s2m',senior_to_owner:'pill-m2o'}[t.escalationLevel]||'pill-none';
   const isAppeal = t.category === 'ban_appeal' || t.category === 'mute_appeal';
   let appealUser = null;
   if (isAppeal && t.createdByUid) {

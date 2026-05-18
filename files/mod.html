@@ -68,7 +68,7 @@
   const Q=[];
   const proxy=n=>function(){Q.push([n,arguments]);};
   ['showPanel','manageUser','warnUser','confirmWarn','permBan','confirmPermBan',
-   'saveUser','closeModal'].forEach(n=>window[n]=proxy(n));
+   'saveUser','closeModal','escalateToSenior','escalateToOwner','appealAction'].forEach(n=>window[n]=proxy(n));
   window._modDrain=function(){
     Q.forEach(([n,a])=>{if(typeof window[n]==='function'&&window[n].toString().indexOf('proxy')===-1)window[n](...a);});
   };
@@ -162,19 +162,26 @@ function rolePill(r) {
 // Load Staff users for assignment dropdown (Mods assign to Staff)
 async function loadStaffUsers() {
   const snap = await getDocs(collection(db,'users'));
-  return snap.docs
-    .map(d => ({ uid:d.id, ...d.data() }))
-    .filter(u => u.role === 'Staff')
+  const all = snap.docs.map(d => ({ uid:d.id, ...d.data() }));
+  // Senior Mod can assign to Mods and Staff
+  // Mod can assign to Staff only
+  if (role === 'Senior Mod') {
+    return all.filter(u => ['Staff','Mod'].includes(u.role))
+      .sort((a,b) => (a.username||a.email).localeCompare(b.username||b.email));
+  }
+  return all.filter(u => u.role === 'Staff')
     .sort((a,b) => (a.username||a.email).localeCompare(b.username||b.email));
 }
 
 function buildStaffSelect(staffUsers, currentAssigned) {
-  const opts = staffUsers.map(u =>
-    `<option value="${u.email}" ${currentAssigned===u.email?'selected':''}>${u.username||u.email} [Staff]</option>`
-  ).join('');
+  const roleLabel = u => u.role==='Senior Mod'?'✦ Senior Mod':u.role==='Mod'?'🛡 Mod':'⚡ Staff';
+  const opts = staffUsers
+    .filter(u => u.email !== email) // don't show self in list, covered by Myself option
+    .map(u => `<option value="${u.email}" ${currentAssigned===u.email?'selected':''}>${u.username||u.email} [${roleLabel(u)}]</option>`)
+    .join('');
   return `<select class="form-select" id="mAssign">
     <option value="">Unassigned</option>
-    <option value="${email}" ${currentAssigned===email?'selected':''}>Myself [Mod]</option>
+    <option value="${email}" ${currentAssigned===email?'selected':''}>Myself [${role==='Senior Mod'?'✦ Senior Mod':'🛡 Mod'}]</option>
     ${opts}
   </select>`;
 }
@@ -251,11 +258,12 @@ async function tickets() {
 
   const rows = snap.docs.filter(d => {
     // Mods don't see tickets escalated to Owner
-    return (d.data().escalationLevel || 'none') !== 'mod_to_owner';
+    const el2 = d.data().escalationLevel || 'none';
+    return el2 !== 'mod_to_senior' && el2 !== 'senior_to_owner';
   }).map(d => {
     const t=d.data(); const id=d.id;
     const sp = {open:'pill-open',in_progress:'pill-progress',closed:'pill-closed'}[t.status]||'pill-none';
-    const ep = {none:'pill-none',staff_to_mod:'pill-s2m',mod_to_owner:'pill-m2o'}[t.escalationLevel]||'pill-none';
+    const ep = {none:'pill-none',staff_to_mod:'pill-s2m',mod_to_senior:'pill-s2m',senior_to_owner:'pill-m2o'}[t.escalationLevel]||'pill-none';
     const pp = t.priority==='high'?'<span style="font-family:var(--mono);font-size:9px;background:rgba(248,81,73,0.15);color:var(--danger);padding:1px 6px;border-radius:2px;margin-left:5px">HIGH</span>':t.priority==='medium'?'<span style="font-family:var(--mono);font-size:9px;background:rgba(210,153,34,0.15);color:var(--warn);padding:1px 6px;border-radius:2px;margin-left:5px">MED</span>':'';
     const isAssignedToMe = t.assignedTo === email;
 
@@ -267,7 +275,7 @@ async function tickets() {
       <td class="mono" style="font-size:11px">${t.createdBy||'—'}</td>
       <td><span class="pill ${sp}">${t.status||'—'}</span></td>
       <td class="mono" style="font-size:11px">${t.assignedTo||'Unassigned'}</td>
-      <td><span class="pill ${ep}">${t.escalationLevel||'none'}</span></td>
+      <td><span class="pill ${ep}">${{'none':'None','staff_to_mod':'Staff→Mod','mod_to_senior':'Mod→Senior Mod','senior_to_owner':'Senior→Owner'}[t.escalationLevel]||t.escalationLevel||'none'}</span></td>
       <td class="mono" style="font-size:11px">${ts(t.timestamp)}</td>
       <td>
         <div class="flex-gap-sm">
@@ -332,7 +340,7 @@ window.openTicket = async function(id) {
   const staffUsers = await loadStaffUsers();
   const isAssignedToMe = t.assignedTo === email;
   const canSeeChat = isAssignedToMe;
-  const canEscalate = t.escalationLevel !== 'mod_to_owner' && t.status !== 'closed';
+  const canEscalate = !['mod_to_senior','senior_to_owner'].includes(t.escalationLevel) && t.status !== 'closed';
   const isAppeal = t.category === 'ban_appeal' || t.category === 'mute_appeal';
   // Fetch user's current punishment status for appeal actions
   let appealUser = null;
@@ -363,7 +371,7 @@ window.openTicket = async function(id) {
         ${canEscalate ? `
         <div class="form-group">
           <div class="form-label">Escalation Reason</div>
-          <input class="form-input" id="tEscReason" placeholder="Required to escalate to Owner" value="${t.escalationReason||''}">
+          <input class="form-input" id="tEscReason" placeholder="Required to escalate" value="${t.escalationReason||''}">
         </div>` : `
         <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:8px">ESCALATION</div>
         <span class="pill pill-m2o">Escalated to Owner</span>`}
@@ -408,7 +416,7 @@ window.openTicket = async function(id) {
     <div class="modal-actions">
       <button class="btn" onclick="closeModal()">Cancel</button>
       <button class="btn btn-danger" onclick="closeTicket('${id}')">Close &amp; Delete</button>
-      ${canEscalate ? `<button class="btn btn-warn" onclick="escalateToOwner('${id}')">Escalate to Owner</button>` : ''}
+      ${canEscalate && role==='Senior Mod' ? `<button class="btn btn-warn" onclick="escalateToOwner('${id}')">Escalate to Owner</button>` : canEscalate && role==='Mod' ? `<button class="btn btn-warn" onclick="escalateToSenior('${id}')">Escalate to Senior Mod</button>` : ''}
       <button class="btn btn-primary" onclick="saveTicketMod('${id}')">Save Changes</button>
     </div>`, true);
 
@@ -465,11 +473,23 @@ window.saveTicketMod = async function(id) {
   closeModal(); tickets();
 };
 
+window.escalateToSenior = async function(id) {
+  const reason = document.getElementById('tEscReason')?.value.trim();
+  if (!reason) { alert('An escalation reason is required.'); return; }
+  await updateDoc(doc(db,'tickets',id), {
+    escalationLevel:'mod_to_senior',
+    escalationReason:reason,
+    escalatedBy:email,
+  });
+  await writeLog(`Escalated ticket ${id} to Senior Mod`);
+  closeModal(); tickets();
+};
+
 window.escalateToOwner = async function(id) {
   const reason = document.getElementById('tEscReason')?.value.trim();
   if (!reason) { alert('An escalation reason is required.'); return; }
   await updateDoc(doc(db,'tickets',id), {
-    escalationLevel:'mod_to_owner',
+    escalationLevel:'senior_to_owner',
     escalationReason:reason,
     escalatedBy:email,
     status:'in_progress',
