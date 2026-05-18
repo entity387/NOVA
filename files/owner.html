@@ -229,7 +229,7 @@ async function tickets() {
       <td class="mono" style="font-size:11px">${t.createdBy||'—'}</td>
       <td><span class="pill ${sp}">${t.status||'—'}</span></td>
       <td class="mono" style="font-size:11px">${t.assignedTo||'—'}</td>
-      <td><span class="pill ${ep}">${t.({'none':'None','staff_to_mod':'Staff→Mod','mod_to_senior':'Mod→Senior','senior_to_owner':'Senior→Owner'}[t.escalationLevel]||t.escalationLevel||'none')}</span></td>
+      <td><span class="pill ${ep}">${({'none':'None','staff_to_mod':'Staff→Mod','mod_to_senior':'Mod→Senior','senior_to_owner':'Senior→Owner'}[t.escalationLevel]||t.escalationLevel||'none')}</span></td>
       <td class="mono" style="font-size:11px">${ts(t.timestamp)}</td>
       <td>
         <div class="flex-gap-sm">
@@ -317,9 +317,10 @@ window.openTicket = async function(id) {
         <div class="form-group">
           <div class="form-label">Escalation</div>
           <select class="form-select" id="tEsc">
-            <option value="none"          ${t.escalationLevel==='none'?'selected':''}>None</option>
-            <option value="staff_to_mod"  ${t.escalationLevel==='staff_to_mod'?'selected':''}>Staff → Mod</option>
-            <option value="mod_to_owner"  ${t.escalationLevel==='mod_to_owner'?'selected':''}>Mod → Owner</option>
+            <option value="none"             ${t.escalationLevel==='none'?'selected':''}>None</option>
+            <option value="staff_to_mod"     ${t.escalationLevel==='staff_to_mod'?'selected':''}>Staff → Mod</option>
+            <option value="mod_to_senior"    ${t.escalationLevel==='mod_to_senior'?'selected':''}>Mod → Senior Mod</option>
+            <option value="senior_to_owner"  ${t.escalationLevel==='senior_to_owner'?'selected':''}>Senior Mod → Owner</option>
           </select>
         </div>
         <div class="form-group">
