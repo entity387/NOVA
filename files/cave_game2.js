@@ -240,11 +240,13 @@ function scene2_coin(){
     if(c==='pocket it'){
       hazel("pocket it");
       hasTakenCoin=true;
+      try{const d=JSON.parse(localStorage.getItem('sly_save')||'{}');d.coin=true;localStorage.setItem('sly_save',JSON.stringify(d));}catch(_){}
       N("She puts it in her jacket pocket.");
       N("It's lighter than it looks.");
     } else if(c==='leave it'){
       hazel("leave it");
       hasTakenCoin=false;
+      try{const d=JSON.parse(localStorage.getItem('sly_save')||'{}');d.coin=false;localStorage.setItem('sly_save',JSON.stringify(d));}catch(_){}
       N("She leaves it. Walks past it.");
       N("Doesn't look back.");
       N("Some things are better left where they are.");
@@ -707,6 +709,7 @@ function isabelle_whereWereYou(){
       N("Isabelle noticed the hesitation. Doesn't push.");
       N("That moment of almost costs Hazel something. The player feels it.");
       almostToldIsabelle=true;
+      try{const d=JSON.parse(localStorage.getItem('sly_save')||'{}');d.almost_told=true;localStorage.setItem('sly_save',JSON.stringify(d));}catch(_){}
       unlockAchievement("Almost","epic");
     }
     cont(isabelle_tea);
@@ -1111,7 +1114,7 @@ function scene6_isabelleEvening(){
     N("But this is the most Hazel has talked in the whole game.");
     blank();
     unlockAchievement("The Flood","rare");
-    if(!floodConfessed)floodConfessed=true;
+    if(!floodConfessed){floodConfessed=true;try{const d=JSON.parse(localStorage.getItem('sly_save')||'{}');d.flood=true;localStorage.setItem('sly_save',JSON.stringify(d));}catch(_){}}
     cont(scene6_athenaComment);
     },400);},400);},400);},400);},400);},400);},400);},400);
   });
@@ -1317,6 +1320,7 @@ function leaving_do(item,done,next){
     addLine("  3. you don't look at me weird. i know.","prompt",80);
     askChoice(["1","2","3"],(c)=>{
       noteChoice=c;
+      try{const d=JSON.parse(localStorage.getItem('sly_save')||'{}');d.note=c;localStorage.setItem('sly_save',JSON.stringify(d));}catch(_){}
       if(c==="1"){
         hazel("back soon. feed mishka. — H");
         N("Classic Hazel. Says everything by saying nothing.");
@@ -1410,16 +1414,105 @@ function leaving_door(){
           N("Agreed.");
           unlockAchievement("The Agreement","legendary");
         }
-        cont(leaving_final);
+        cont(leaving_isabelle_choice);
         return;
       });
       return;
     }
-    cont(leaving_final);
+    cont(leaving_isabelle_choice);
   });
 }
 
-function leaving_final(){
+function leaving_isabelle_choice(){
+  currentNarrator='narrator';
+  blank();
+  N("...");
+  blank();
+  N("A sound from the sofa.");
+  blank();
+  N("Isabelle is awake. She's been awake for a while, probably.");
+  N("She looks at Hazel. At the bag. At the door.");
+  blank();
+  isabelle("...are you going somewhere.");
+  blank();
+  N("Not accusing. Just — needing to know.");
+  blank();
+  addLine("Options: 1 / 2",'prompt',220);
+  addLine("  1. yeah. i have to do something.",'prompt',80);
+  addLine("  2. ...do you want to come.",'prompt',80);
+  askChoice(["1","2"],(c)=>{
+    if(c==="1"){
+      hazel("yeah. i have to do something.");
+      blank();
+      isabelle("...");
+      isabelle("okay.");
+      isabelle("be safe.");
+      blank();
+      N("Just that. No argument. No interrogation.");
+      N("Eight years of friendship. She trusts her.");
+      blank();
+      N("Hazel almost says something else.");
+      N("She doesn't.");
+      blank();
+      // Save choice
+      try{ const d=JSON.parse(localStorage.getItem('sly_save')||'{}'); d.isabelle_came=false; localStorage.setItem('sly_save',JSON.stringify(d)); }catch(_){}
+      unlockAchievement("Going Alone","rare");
+      cont(leaving_final);
+    } else {
+      hazel("...do you want to come.");
+      blank();
+      N("Isabelle stares at her.");
+      blank();
+      isabelle("...what?");
+      hazel("i know it's early. and i know i can't explain everything yet.");
+      hazel("but i'm going somewhere and i'd like it if you came.");
+      blank();
+      N("Isabelle looks at her for a long moment.");
+      N("Then she gets up.");
+      blank();
+      isabelle("give me five minutes.");
+      blank();
+      N("She doesn't ask where they're going.");
+      N("She just goes to get her bag.");
+      blank();
+      N("That's Isabelle.");
+      // Save choice
+      try{ const d=JSON.parse(localStorage.getItem('sly_save')||'{}'); d.isabelle_came=true; localStorage.setItem('sly_save',JSON.stringify(d)); }catch(_){}
+      unlockAchievement("Together","legendary");
+      cont(leaving_final_together);
+    }
+  });
+}
+
+function leaving_final_together(){
+  currentNarrator='narrator';
+  artPrint(`
+   dawn.
+   same as scene one.
+   but different.
+   and this time — not alone.`);
+  blank();
+  N("She walked out of the cave into this village not knowing what the letter meant.");
+  N("Now she's walking out of the village knowing exactly what she's walking toward.");
+  N("And going anyway.");
+  N("With Isabelle beside her.");
+  blank();
+  N("...");
+  blank();
+  N("North, then.");
+  blank();
+  N("Both of them.");
+  blank();
+  unlockAchievement("North","mythic");
+  blank();
+  addLine('','system');
+  addLine('                    to be continued.','end',300);
+  blank();
+  addLine('[ PRESS ENTER ]','prompt',300);
+  askChoice([''],(_)=>clearAndRun(playAgain));
+}
+
+
   currentNarrator='narrator';
   N("She opens the door.");
   N("Steps out.");
@@ -1491,7 +1584,7 @@ function playAgain(){
 // ═══════════════════════════════════════════════════════════
 function updateAchievementPanel(){
   const all=loadSaved();
-  achCount.textContent=`ACHIEVEMENTS: ${all.length} / 30`;
+  achCount.textContent=`ACHIEVEMENTS: ${all.length} / 37`;
 }
 achCount.addEventListener('click',showAchievementPanel);
 
@@ -1521,6 +1614,8 @@ function showAchievementPanel(){
     {n:'Not An Answer',r:'rare'},{n:'Not Entirely True',r:'secret'},
     {n:'Asked Him For Something',r:'secret'},{n:'Tested the GPS',r:'rare'},
     {n:'North',r:'mythic'},
+    {n:'Going Alone',r:'rare'},
+    {n:'Together',r:'legendary'},
   ];
   const un=new Set(all.map(a=>a.name));
   const rows=ALL.map(a=>{

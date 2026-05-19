@@ -107,7 +107,7 @@ body::after {
 }
 .trilogy-grid {
   display:grid;
-  grid-template-columns:repeat(2,1fr);
+  grid-template-columns:repeat(3,1fr);
   gap:10px;
 }
 .trilogy-card {
@@ -244,6 +244,7 @@ const GAMES = [
   { id:'asteroids', name:'ASTEROIDS',       icon:'☄️',  color:'#fff' },
   { id:'cave',      name:'THE WRONG CAVE',  icon:'🕯️',  color:'#0f0', external:true, extUrl:'cave_adventure.html', trilogy:true },
   { id:'cave2',     name:'THE ROAD HOME',    icon:'🌲',  color:'#0f0', external:true, extUrl:'cave_adventure_2.html', trilogy:true },
+  { id:'cave3',     name:'FOR YOU',          icon:'🌟',  color:'#0f0', external:true, extUrl:'cave_adventure_3.html', trilogy:true },
 ];
 
 const lobby      = document.getElementById('lobby');
@@ -259,6 +260,10 @@ let currentGame = null;
 let gameLoop    = null;
 let score       = 0;
 let hiScores    = JSON.parse(localStorage.getItem('novaArcadeHi') || '{}');
+function getCave3Achievements() {
+  try { const a = JSON.parse(localStorage.getItem('novaCaveAch3')||'[]'); return a.length+'/35'; }
+  catch(_) { return '0/35'; }
+}
 function getCave2Achievements() {
   try { const a = JSON.parse(localStorage.getItem('novaCaveAch2')||'[]'); return a.length+'/35'; }
   catch(_) { return '0/35'; }
@@ -323,6 +328,8 @@ function renderLobby() {
   const trilogyGames = GAMES.filter(g=>g.trilogy);
   const arcadeGames  = GAMES.filter(g=>!g.trilogy);
 
+  const comingSoon = '';
+
   const trilogyCards = trilogyGames.map(g => {
     const onclick = "window.location.href='" + g.extUrl + "'";
     const scoreText = g.id==='cave' ? ('ACH: '+getCaveAchievements()) : ('ACH: '+getCave2Achievements());
@@ -346,7 +353,7 @@ function renderLobby() {
     '<div class="trilogy-section">' +
       '<div class="trilogy-header">★ SOMEONE LIKE YOU ★</div>' +
       '<div class="trilogy-sub">A TEXT ADVENTURE TRILOGY</div>' +
-      '<div class="trilogy-grid">' + trilogyCards + '</div>' +
+      '<div class="trilogy-grid">' + trilogyCards + comingSoon + '</div>' +
     '</div>' +
     '<div class="arcade-section-label">ARCADE</div>' +
     '<div class="arcade-inner-grid">' + arcadeCards + '</div>';
