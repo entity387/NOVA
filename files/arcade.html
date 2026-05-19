@@ -83,6 +83,68 @@ body::after {
 
 .coin-msg { font-size:7px; color:var(--magenta); margin-top:30px; animation:blink 1s step-end infinite; }
 
+.trilogy-section {
+  width:100%; max-width:900px;
+  margin-bottom:20px;
+  border:1px solid #333;
+  padding:16px;
+  background:rgba(0,255,65,0.03);
+}
+.trilogy-header {
+  font-size:clamp(8px,2vw,14px);
+  color:var(--green);
+  text-shadow:0 0 10px var(--green);
+  letter-spacing:4px;
+  text-align:center;
+  margin-bottom:4px;
+}
+.trilogy-sub {
+  font-size:7px;
+  color:#005514;
+  letter-spacing:3px;
+  text-align:center;
+  margin-bottom:14px;
+}
+.trilogy-grid {
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
+}
+.trilogy-card {
+  border-color:#005514 !important;
+  background:rgba(0,255,65,0.04) !important;
+}
+.trilogy-card:hover {
+  border-color:var(--green) !important;
+  background:rgba(0,255,65,0.08) !important;
+}
+.arcade-section-label {
+  font-size:8px;
+  color:#333;
+  letter-spacing:4px;
+  text-align:center;
+  margin-bottom:10px;
+  width:100%;
+}
+.arcade-inner-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+  gap:12px;
+  width:100%;
+  max-width:900px;
+}
+.games-grid {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:0;
+  width:100%;
+  max-width:900px;
+  max-height:calc(100vh - 200px);
+  overflow-y:auto;
+  padding:4px;
+}
+
 /* ── GAME SCREEN ── */
 #gameScreen {
   display:none;
@@ -180,8 +242,8 @@ const GAMES = [
   { id:'pong',      name:'PONG',            icon:'🏓', color:'#fff' },
   { id:'scramble',  name:'SCRAMBLE',        icon:'✈️',  color:'#f80' },
   { id:'asteroids', name:'ASTEROIDS',       icon:'☄️',  color:'#fff' },
-  { id:'cave',      name:'CAVE ADVENTURE',  icon:'🕯️',  color:'#0f0', external:true, extUrl:'cave_adventure.html' },
-  { id:'cave2',     name:'CAVE ADVENTURE II', icon:'🌲',  color:'#0f0', external:true, extUrl:'cave_adventure_2.html' },
+  { id:'cave',      name:'THE WRONG CAVE',  icon:'🕯️',  color:'#0f0', external:true, extUrl:'cave_adventure.html', trilogy:true },
+  { id:'cave2',     name:'THE ROAD HOME',    icon:'🌲',  color:'#0f0', external:true, extUrl:'cave_adventure_2.html', trilogy:true },
 ];
 
 const lobby      = document.getElementById('lobby');
@@ -258,15 +320,36 @@ backBtn.addEventListener('click', () => {
 
 function renderLobby() {
   const grid = document.getElementById('gamesGrid');
-  grid.innerHTML = GAMES.map(g => {
-    const onclick = g.external ? "window.location.href='cave_adventure.html'" : "startGame('" + g.id + "')";
-    const scoreText = g.id==='cave' ? ('ACH: '+getCaveAchievements()) : g.id==='cave2' ? ('ACH: '+getCave2Achievements()) : ('HI: '+(hiScores[g.id]||0));
-    return '<div class="game-card" onclick="' + onclick + '">' +
+  const trilogyGames = GAMES.filter(g=>g.trilogy);
+  const arcadeGames  = GAMES.filter(g=>!g.trilogy);
+
+  const trilogyCards = trilogyGames.map(g => {
+    const onclick = "window.location.href='" + g.extUrl + "'";
+    const scoreText = g.id==='cave' ? ('ACH: '+getCaveAchievements()) : ('ACH: '+getCave2Achievements());
+    return '<div class="game-card trilogy-card" onclick="' + onclick + '">' +
       '<span class="game-icon" style="color:' + g.color + '">' + g.icon + '</span>' +
       '<div class="game-name" style="color:' + g.color + '">' + g.name + '</div>' +
       '<div class="game-score">' + scoreText + '</div>' +
       '</div>';
   }).join('');
+
+  const arcadeCards = arcadeGames.map(g => {
+    const onclick = "startGame('" + g.id + "')";
+    return '<div class="game-card" onclick="' + onclick + '">' +
+      '<span class="game-icon" style="color:' + g.color + '">' + g.icon + '</span>' +
+      '<div class="game-name" style="color:' + g.color + '">' + g.name + '</div>' +
+      '<div class="game-score">HI: ' + (hiScores[g.id]||0) + '</div>' +
+      '</div>';
+  }).join('');
+
+  grid.innerHTML =
+    '<div class="trilogy-section">' +
+      '<div class="trilogy-header">★ SOMEONE LIKE YOU ★</div>' +
+      '<div class="trilogy-sub">A TEXT ADVENTURE TRILOGY</div>' +
+      '<div class="trilogy-grid">' + trilogyCards + '</div>' +
+    '</div>' +
+    '<div class="arcade-section-label">ARCADE</div>' +
+    '<div class="arcade-inner-grid">' + arcadeCards + '</div>';
 }
 
 // ── KEY HANDLING ──────────────────────────────────────────

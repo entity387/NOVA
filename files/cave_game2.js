@@ -1532,7 +1532,7 @@ function showAchievementPanel(){
 // BOOT
 // ═══════════════════════════════════════════════════════════
 function boot(){
-  addLine('CAVE_ADVENTURE_II.EXE — NORTH — BOOTING...','system',0);
+  addLine('SOMEONE LIKE YOU: THE ROAD HOME — BOOTING...','system',0);
   addLine('> Restoring narrator from previous session...  [OK]','system',400);
   addLine('> Locating Hazel...                            [OK]','system',700);
   addLine('> Cave exit found. Dawn. Cold.                 [OK]','system',1000);
