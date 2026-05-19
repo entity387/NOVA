@@ -1037,8 +1037,8 @@ function boot(){
   addLine('SOMEONE LIKE YOU: THE WRONG CAVE — BOOTING...','system',0);
   addLine('> Initialising narrator subsystem (6 narrators)...  [OK]','system',300);
   addLine('> Loading cave topology (expanded)...               [OK]','system',600);
-  addLine('> Checking achievement database (44 entries)...     [OK]
-  addLine("> Series: SOMEONE LIKE YOU — Game I: THE WRONG CAVE  [OK]",'system',1050);','system',900);
+  addLine('> Checking achievement database (44 entries)...     [OK]','system',900);
+  addLine('> Series: SOMEONE LIKE YOU — Game I: THE WRONG CAVE  [OK]','system',1050);
   addLine('> Calibrating dimness levels...                     [OK]','system',1200);
   addLine('> System ready.','system',1500);
   divider();

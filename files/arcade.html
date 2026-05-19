@@ -244,6 +244,7 @@ const GAMES = [
   { id:'asteroids', name:'ASTEROIDS',       icon:'☄️',  color:'#fff' },
   { id:'cave',      name:'THE WRONG CAVE',  icon:'🕯️',  color:'#0f0', external:true, extUrl:'cave_adventure.html', trilogy:true },
   { id:'cave2',     name:'THE ROAD HOME',    icon:'🌲',  color:'#0f0', external:true, extUrl:'cave_adventure_2.html', trilogy:true },
+  { id:'cave3',     name:'FOR YOU',          icon:'🌟',  color:'#ffd700', external:true, extUrl:'cave_adventure_3.html', trilogy:true },
   { id:'cave3',     name:'FOR YOU',          icon:'🌟',  color:'#0f0', external:true, extUrl:'cave_adventure_3.html', trilogy:true },
 ];
 
@@ -265,8 +266,12 @@ function getCave3Achievements() {
   catch(_) { return '0/35'; }
 }
 function getCave2Achievements() {
-  try { const a = JSON.parse(localStorage.getItem('novaCaveAch2')||'[]'); return a.length+'/35'; }
-  catch(_) { return '0/35'; }
+  try { const a = JSON.parse(localStorage.getItem('novaCaveAch2')||'[]'); return a.length+'/37'; }
+  catch(_) { return '0/37'; }
+}
+function getCave3Achievements() {
+  try { const a = JSON.parse(localStorage.getItem('novaCaveAch3')||'[]'); return a.length+'/28'; }
+  catch(_) { return '0/28'; }
 }
 function getCaveAchievements() {
   try { const a = JSON.parse(localStorage.getItem('novaCaveAchievements')||'[]'); return `${a.length}/21`; }
@@ -353,7 +358,7 @@ function renderLobby() {
     '<div class="trilogy-section">' +
       '<div class="trilogy-header">★ SOMEONE LIKE YOU ★</div>' +
       '<div class="trilogy-sub">A TEXT ADVENTURE TRILOGY</div>' +
-      '<div class="trilogy-grid">' + trilogyCards + comingSoon + '</div>' +
+      '<div class="trilogy-grid">' + trilogyCards + '</div>' +
     '</div>' +
     '<div class="arcade-section-label">ARCADE</div>' +
     '<div class="arcade-inner-grid">' + arcadeCards + '</div>';
@@ -911,14 +916,18 @@ GAME_ENGINES.pacman = {
     }
 
     let ghostMoveTimer = 0;
+    let pacMoveTimer = 0;
     const GHOST_SPEED = 12; // ticks between ghost tile-moves
+    const PAC_SPEED   = 8;  // ticks between pac tile-moves (faster than ghosts)
 
     function update() {
       if(waiting) return;
       tick++;
 
-      // Pac movement — try queued direction first
-      if(pac.step===0){
+      // Pac movement — only move every PAC_SPEED ticks
+      pacMoveTimer++;
+      if(pacMoveTimer >= PAC_SPEED){
+        pacMoveTimer = 0;
         // try new direction
         if(!wall(pac.col+pac.wdx, pac.row+pac.wdy)){ pac.dx=pac.wdx; pac.dy=pac.wdy; }
         // move if possible
