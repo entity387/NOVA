@@ -80,7 +80,7 @@ function processQueue(){
     const el=document.createElement('div');
     el.className='line '+cls; el.textContent=text;
     output.appendChild(el);
-    while(output.children.length>16)output.removeChild(output.firstChild);
+    while(output.children.length>Math.floor(window.innerHeight/48))output.removeChild(output.firstChild);
     processQueue();
   },delay);
 }
@@ -734,7 +734,7 @@ function isabelle_tea(){
       blank();
       N("Hazel doesn't answer. Doesn't need to.");
       unlockAchievement("Said It Out Loud","epic");
-    } else if(c==="i've been going since i was a kid. it was just mine."){
+    } else if(c==="2"){
       hazel("i've been going since i was a kid. it was just mine.");
       blank();
       isabelle("yeah.");
@@ -1016,20 +1016,20 @@ function scene6_isabelleCall(){
   blank();
   addLine("Options: yeah. okay. / i can't tonight. / isabelle — i might be going away for a bit",'prompt',220);
   askChoice(["yeah. okay.","i can't tonight.","isabelle — i might be going away for a bit"],(c)=>{
-    if(c==="yeah. okay."){
+    if(c==="1"){
       hazel("yeah. okay.");
       isabelle("okay. good. 7?");
       hazel("yeah.");
       N("She hangs up. Sits with it for a moment.");
       cont(scene6_isabelleEvening);
-    } else if(c==="i can't tonight."){
+    } else if(c==="2"){
       hazel("i can't tonight.");
       isabelle("...okay. tomorrow?");
       hazel("..yeah. tomorrow.");
       N("She hangs up. Stares at the phone.");
       N("Tomorrow. She'll figure out how to say it by tomorrow.");
       cont(scene6_isabelleEvening);
-    } else {
+    } else if(c==="3") {
       hazel("isabelle — i might be going away for a bit.");
       blank();
       N("Isabelle goes quiet for a moment.");
@@ -1082,26 +1082,39 @@ function scene6_isabelleEvening(){
   addLine("[ long dialogue — the narrator stays completely out of it ]","system",140);
   blank();
   N("She explains the water cooling. The why behind every component. The Ryzen 7 7800X3D and the three weeks of research. The 4070 Super and how she still thinks about the 4080.");
+  blank();
   N("The no-RGB rule and why she will defend it.");
   blank();
   N("And then the flood.");
   blank();
-  hazel("there was — okay. when i built the water loop there was a minor flood.");
-  isabelle("...how minor.");
-  hazel("...it was fine. everything was fine. athena was fine.");
-  isabelle("hazel.");
-  hazel("i moved her in time okay. she was fine.");
-  blank();
-  N("Isabelle is laughing. Trying not to. Failing.");
-  isabelle("you have never told me that.");
-  hazel("i don't talk about the flood.");
-  blank();
-  N("The narrator stays out of it.");
-  N("But this is the most Hazel has talked in the whole game.");
-  blank();
-  unlockAchievement("The Flood","rare");
-  if(!floodConfessed)floodConfessed=true;
-  cont(scene6_athenaComment);
+  addLine('[ PRESS ENTER TO CONTINUE ]','prompt',220);
+  askChoice([''],(_)=>{
+    hazel("there was — okay. when i built the water loop there was a minor flood.");
+    setTimeout(()=>{
+    isabelle("...how minor.");
+    setTimeout(()=>{
+    hazel("...it was fine. everything was fine. athena was fine.");
+    setTimeout(()=>{
+    isabelle("hazel.");
+    setTimeout(()=>{
+    hazel("i moved her in time okay. she was fine.");
+    blank();
+    setTimeout(()=>{
+    N("Isabelle is laughing. Trying not to. Failing.");
+    setTimeout(()=>{
+    isabelle("you have never told me that.");
+    setTimeout(()=>{
+    hazel("i don't talk about the flood.");
+    blank();
+    setTimeout(()=>{
+    N("The narrator stays out of it.");
+    N("But this is the most Hazel has talked in the whole game.");
+    blank();
+    unlockAchievement("The Flood","rare");
+    if(!floodConfessed)floodConfessed=true;
+    cont(scene6_athenaComment);
+    },400);},400);},400);},400);},400);},400);},400);},400);
+  });
 }
 
 function scene6_athenaComment(){
@@ -1298,22 +1311,21 @@ function leaving_do(item,done,next){
     N("She leaves something for Isabelle.");
     N("On the coffee table. Next to Mishka's food bowl.");
     blank();
-    addLine("Options: back soon. feed mishka. — H / i'm sorry i didn't tell you. i'll explain when i'm back. i promise. / you don't look at me weird. i know. — H",'prompt',220);
-    askChoice([
-      "back soon. feed mishka. — H",
-      "i'm sorry i didn't tell you. i'll explain when i'm back. i promise.",
-      "you don't look at me weird. i know. — H"
-    ],(c)=>{
+    addLine("Options: 1 / 2 / 3","system",80);
+    addLine("  1. back soon. feed mishka.","prompt",80);
+    addLine("  2. i'm sorry i didn't tell you. i'll explain when i'm back. i promise.","prompt",80);
+    addLine("  3. you don't look at me weird. i know.","prompt",80);
+    askChoice(["1","2","3"],(c)=>{
       noteChoice=c;
-      if(c==="back soon. feed mishka. — H"){
+      if(c==="1"){
         hazel("back soon. feed mishka. — H");
         N("Classic Hazel. Says everything by saying nothing.");
-      } else if(c==="i'm sorry i didn't tell you. i'll explain when i'm back. i promise."){
+      } else if(c==="2"){
         hazel("i'm sorry i didn't tell you. i'll explain when i'm back. i promise.");
         N("The most open she's been. Costs her something.");
         unlockAchievement("The Promise","epic");
       } else {
-        hazel("you don't look at me weird. i know. — H");
+        hazel("you don't look at me weird. i know.");
         N("Isabelle will know exactly what it means.");
         unlockAchievement("She Knows","epic");
       }
@@ -1365,7 +1377,7 @@ function leaving_door(){
       N("That's not entirely true either.");
       blank();
       unlockAchievement("Not Entirely True","secret");
-    } else if(c==="why are you telling me now."){
+    } else if(c==="2"){
       hazel("why are you telling me now.");
       blank();
       N("...");
@@ -1378,13 +1390,16 @@ function leaving_door(){
       N("I'm always with the story.");
       blank();
       addLine("Options: that's not an answer. / ...okay. / don't tell isabelle anything she doesn't ask about.",'prompt',220);
-      askChoice(["that's not an answer.","...okay.","don't tell isabelle anything she doesn't ask about."],(c2)=>{
-        if(c2==="that's not an answer."){
+      addLine("  1. that's not an answer.","prompt",80);
+        addLine("  2. ...okay.","prompt",80);
+        addLine("  3. don't tell isabelle anything she doesn't ask about.","prompt",80);
+        askChoice(["1","2","3"],(c2)=>{
+        if(c2==="1"){
           hazel("that's not an answer.");
           N("...");
           N("No. It isn't.");
           unlockAchievement("Not An Answer","rare");
-        } else if(c2==="...okay."){
+        } else if(c2==="2"){
           hazel("...okay.");
           N("...");
         } else {
