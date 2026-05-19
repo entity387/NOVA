@@ -44,7 +44,7 @@ function processQueue(){
     const el=document.createElement('div');
     el.className='line '+cls; el.textContent=text;
     output.appendChild(el);
-    while(output.children.length>Math.floor(window.innerHeight/48))output.removeChild(output.firstChild);
+    while(output.children.length>Math.floor((window.innerHeight-180)/36))output.removeChild(output.firstChild);
     processQueue();
   },delay);
 }

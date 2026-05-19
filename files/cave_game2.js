@@ -80,7 +80,7 @@ function processQueue(){
     const el=document.createElement('div');
     el.className='line '+cls; el.textContent=text;
     output.appendChild(el);
-    while(output.children.length>Math.floor(window.innerHeight/48))output.removeChild(output.firstChild);
+    while(output.children.length>Math.floor((window.innerHeight-180)/36))output.removeChild(output.firstChild);
     processQueue();
   },delay);
 }
@@ -191,7 +191,7 @@ function scene1(){
   N("Hazel.");
   blank();
   addLine("Options: ...how do you know my name / great. a voice. / ...",'prompt',220);
-  askChoice(['...how do you know my name','great. a voice.','..'+'.'/*...*/],(c)=>{
+  askChoice(['...how do you know my name','great. a voice.','...'],(c)=>{
     if(c==='...how do you know my name'){
       hazel("...how do you know my name.");
       setTimeout(()=>{
@@ -399,7 +399,7 @@ function scene3_village(){
   N("Not a question.");
   blank();
   addLine("Options: wasn't missing. knew exactly where i was. / morning. / ...",'prompt',220);
-  askChoice(['wasn\'t missing. knew exactly where i was.','morning.','..'+'.'/*...*/],(c)=>{
+  askChoice(['wasn\'t missing. knew exactly where i was.','morning.','...'],(c)=>{
     if(c==='wasn\'t missing. knew exactly where i was.'){
       hazel("wasn't missing. knew exactly where i was.");
       addLine("UPDATE: LOCAL RESIDENT RESPONDS WITH CHARACTERISTIC DRY TONE —","ticker",140);
@@ -548,7 +548,7 @@ function village_shop(){
   N("'Three days. Where did you get to then?'");
   blank();
   addLine("Options: cave. / visiting someone. / ...",'prompt',220);
-  askChoice(['cave.','visiting someone.','..'+'.'/*...*/],(c)=>{
+  askChoice(['cave.','visiting someone.','...'],(c)=>{
     if(c==='cave.'){
       hazel("cave.");
       addLine("Search: 'hazel's cave' — no results","search",140);
@@ -579,7 +579,7 @@ function village_group(){
   N("She catches the tail end of it. Not loud enough to hear properly. Loud enough to know.");
   blank();
   addLine("Options: keep walking / stop and look back / ...",'prompt',220);
-  askChoice(['keep walking','stop and look back','..'+'.'/*...*/],(c)=>{
+  askChoice(['keep walking','stop and look back','...'],(c)=>{
     if(c==='keep walking'){
       hazel("keep walking");
       addLine("UPDATE: HAZEL MAINTAINS COMPOSURE — HAS DONE THIS HER WHOLE LIFE —","ticker",140);
@@ -613,7 +613,7 @@ function village_kindPerson(){
   N("Just that.");
   blank();
   addLine("Options: thanks. / i'm fine. / ...",'prompt',220);
-  askChoice(['thanks.','i\'m fine.','..'+'.'/*...*/],(c)=>{
+  askChoice(['thanks.','i\'m fine.','...'],(c)=>{
     if(c==='thanks.'){
       hazel("thanks.");
       N("Genuine. She means it.");
@@ -657,8 +657,12 @@ function scene4_isabelle(){
   N("She hugs her. Before Hazel can say anything.");
   N("The narrator goes completely quiet.");
   blank();
-  addLine("Options: ..sorry. / i'm fine isabelle / ...",'prompt',220);
-  askChoice(['..sorry.','i\'m fine isabelle','..'+'.'/*...*/],(c)=>{
+  addLine("[ PRESS ENTER ]",'prompt',220);
+  askChoice([''],(_)=>{
+    clearAndRun(()=>{
+      currentNarrator='narrator';
+      addLine("Options: ..sorry. / i'm fine isabelle / ...",'prompt',220);
+  askChoice(['..sorry.','i\'m fine isabelle','...'],(c)=>{
     isabelleScene1Choice=c;
     if(c==='..sorry.'){
       hazel("..sorry.");
@@ -676,6 +680,8 @@ function scene4_isabelle(){
       unlockAchievement("Accepted","rare");
     }
     cont(isabelle_whereWereYou);
+    });
+    });
   });
 }
 
@@ -728,7 +734,7 @@ function isabelle_tea(){
   blank();
   addLine("Options: it's quiet. nobody looks at me like i don't belong there. / i've been going since i was a kid. it was just mine. / ...i don't know. it felt like it was waiting for me.",'prompt',220);
   askChoice(["it's quiet. nobody looks at me like i don't belong there.","i've been going since i was a kid. it was just mine.","...i don't know. it felt like it was waiting for me."],(c)=>{
-    if(c==="it's quiet. nobody looks at me like i don't belong there."){
+    if(c==="1"){
       hazel("it's quiet. nobody looks at me like i don't belong there.");
       blank();
       N("Isabelle goes quiet for a moment.");
@@ -804,7 +810,7 @@ function isabelle_after(){
   N("She would have listened, you know.");
   blank();
   addLine("Options: i know. / stay out of it. / ...",'prompt',220);
-  askChoice(['i know.','stay out of it.','..'+'.'/*...*/],(c)=>{
+  askChoice(['i know.','stay out of it.','...'],(c)=>{
     narratorNameChoice=c;
     if(c==='i know.'){
       hazel("i know.");
@@ -840,15 +846,21 @@ function scene5_night(){
   addLine("Very polite. Sits at the edge of the bed near Mishka.","system",140);
   addLine("Mishka acknowledges it with the mild interest of a cat who has seen everything.","system",140);
   blank();
-  N("Oh. It's you.");
-  blank();
-  addLine("...Hello again.","demon",220);
-  blank();
-  N("They know each other. The narrator doesn't explain this.");
-  blank();
-  addLine("...I have three questions. As always.","demon",220);
-  blank();
-  cont(demon_q1);
+  addLine('[ PRESS ENTER ]','prompt',220);
+  askChoice([''],(_)=>{
+    clearAndRun(()=>{
+      currentNarrator='demon';
+      N("Oh. It's you.");
+      blank();
+      addLine("...Hello again.","demon",220);
+      blank();
+      N("They know each other. The narrator doesn't explain this.");
+      blank();
+      addLine("...I have three questions. As always.","demon",220);
+      blank();
+      cont(demon_q1);
+    });
+  });
 }
 
 function demon_q1(){
@@ -880,7 +892,7 @@ function demon_q2(){
   N("The first time anyone has directly acknowledged the letter.");
   blank();
   addLine("Options: how do you know about that. / no. / ...",'prompt',220);
-  askChoice(['how do you know about that.','no.','..'+'.'/*...*/],(c)=>{
+  askChoice(['how do you know about that.','no.','...'],(c)=>{
     if(c==='how do you know about that.'){
       hazel("how do you know about that.");
       addLine("...","demon",220);
@@ -943,7 +955,7 @@ function demon_leave(){
   addLine("...I think he's on your side.","demon",220);
   blank();
   addLine("Options: what does that mean. / why are you telling me this. / ...",'prompt',220);
-  askChoice(['what does that mean.','why are you telling me this.','..'+'.'/*...*/],(c)=>{
+  askChoice(['what does that mean.','why are you telling me this.','...'],(c)=>{
     if(c==='what does that mean.'){
       hazel("what does that mean.");
     } else if(c==='why are you telling me this.'){
@@ -1018,7 +1030,7 @@ function scene6_isabelleCall(){
   isabelle("do you want to come over tonight? just — hang out. normal stuff.");
   blank();
   addLine("Options: yeah. okay. / i can't tonight. / isabelle — i might be going away for a bit",'prompt',220);
-  askChoice(["yeah. okay.","i can't tonight.","isabelle — i might be going away for a bit"],(c)=>{
+  askChoice(["1","2","3"],(c)=>{
     if(c==="1"){
       hazel("yeah. okay.");
       isabelle("okay. good. 7?");
@@ -1040,7 +1052,7 @@ function scene6_isabelleCall(){
       isabelle("...how long is a bit?");
       blank();
       addLine("Options: i don't know. / not long. / ...",'prompt',220);
-      askChoice(["i don't know.","not long.",'..'+'.'/*...*/],(c2)=>{
+      askChoice(["i don't know.","not long.",'...'],(c2)=>{
         if(c2==="i don't know."){
           hazel("i don't know.");
         } else if(c2==="not long."){
@@ -1361,16 +1373,22 @@ function leaving_door(){
   blank();
   N("Mishka is already back on Isabelle. Isabelle is still asleep.");
   blank();
-  N("...");
-  blank();
-  N("You know I can't tell you what's waiting.");
-  blank();
-  N("But I've been watching that cave for longer than you've been alive.");
-  N("And I've never seen it choose anyone before.");
-  blank();
-  addLine("Options: ...you knew. this whole time. / why are you telling me now. / are you coming with me.",'prompt',220);
-  askChoice(["...you knew. this whole time.","why are you telling me now.","are you coming with me."],(c)=>{
-    if(c==="...you knew. this whole time."){
+  addLine('[ PRESS ENTER ]','prompt',220);
+  askChoice([''],(_)=>{clearAndRun(()=>{
+    currentNarrator='narrator';
+    N("...");
+    blank();
+    N("You know I can't tell you what's waiting.");
+    blank();
+    N("But I've been watching that cave for longer than you've been alive.");
+    N("And I've never seen it choose anyone before.");
+    blank();
+    addLine("Options: 1 / 2 / 3",'prompt',220);
+    addLine("  1. ...you knew. this whole time.",'prompt',80);
+    addLine("  2. why are you telling me now.",'prompt',80);
+    addLine("  3. are you coming with me.",'prompt',80);
+    askChoice(["1","2","3"],(c)=>{
+    if(c==="1"){
       hazel("...you knew. this whole time.");
       blank();
       N("...");
@@ -1393,11 +1411,10 @@ function leaving_door(){
       N("...");
       N("I'm always with the story.");
       blank();
-      addLine("Options: that's not an answer. / ...okay. / don't tell isabelle anything she doesn't ask about.",'prompt',220);
       addLine("  1. that's not an answer.","prompt",80);
-        addLine("  2. ...okay.","prompt",80);
-        addLine("  3. don't tell isabelle anything she doesn't ask about.","prompt",80);
-        askChoice(["1","2","3"],(c2)=>{
+      addLine("  2. ...okay.","prompt",80);
+      addLine("  3. don't tell isabelle anything she doesn't ask about.","prompt",80);
+      askChoice(["1","2","3"],(c2)=>{
         if(c2==="1"){
           hazel("that's not an answer.");
           N("...");
@@ -1420,7 +1437,7 @@ function leaving_door(){
       return;
     }
     cont(leaving_isabelle_choice);
-  });
+  });});});
 }
 
 function leaving_isabelle_choice(){
@@ -1512,7 +1529,7 @@ function leaving_final_together(){
   askChoice([''],(_)=>clearAndRun(playAgain));
 }
 
-
+function leaving_final(){
   currentNarrator='narrator';
   N("She opens the door.");
   N("Steps out.");
