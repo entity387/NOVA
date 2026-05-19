@@ -467,10 +467,16 @@ function may_talk(){
   may("and then she made tea. and we watched something terrible on tv.");
   may("and it was awful for a while and then it wasn't.");
   blank();
+  cont(may_talk_2);
+}
+
+function may_talk_2(){
+  currentNarrator='may';
   hazel("are you glad you said it?");
   blank();
   may("...");
   may("yeah.");
+  blank();
   may("because at least it was real.");
   may("carrying it wasn't real. saying it was.");
   blank();
@@ -1077,6 +1083,12 @@ function hermes_goodbye(){
   blank();
   artGold(HANDS_ART);
   blank();
+  addLine('[ PRESS ENTER TO CONTINUE ]','prompt',220);
+  askChoice([''],(_)=>clearAndRun(hermes_goodbye_2));
+}
+
+function hermes_goodbye_2(){
+  currentNarrator='hermes';
   hermes("I have narrated a great many things.");
   blank();
   hermes("Caves. Crossroads. A giant who wouldn't wake up.");
@@ -1092,6 +1104,11 @@ function hermes_goodbye(){
   blank();
   hermes("But there it is.");
   blank();
+  cont(hermes_goodbye_3);
+}
+
+function hermes_goodbye_3(){
+  currentNarrator='hermes';
   hermes("Athena chose well.");
   hermes("She usually does.");
   blank();
@@ -1105,14 +1122,20 @@ function hermes_goodbye(){
   blank();
   unlockAchievement("For You","mythic");
   blank();
-  setTimeout(()=>{
-    addLine("hazel > i love you.",'hazel',300);
-    setTimeout(()=>{
-      addLine("isabelle > i love you.",'isabelle',300);
+  addLine('[ PRESS ENTER ]','prompt',300);
+  askChoice([''],(_)=>{
+    clearScreen(()=>{
+      lineQueue=[];isTyping=false;
       blank();
-      setTimeout(()=>clearAndRun(credits),3500);
-    },800);
-  },600);
+      blank();
+      addLine("hazel > i love you.",'hazel',600);
+      setTimeout(()=>{
+        addLine("isabelle > i love you.",'isabelle',600);
+        blank();
+        setTimeout(()=>clearAndRun(credits),4000);
+      },1200);
+    });
+  });
 }
 
 // ═══ CREDITS ════════════════════════════════════════════════
@@ -1137,31 +1160,39 @@ function credits(){
 function credits_hazel(){
   clearScreen(()=>{
     lineQueue=[];isTyping=false;
-    addLine('─── A CONVERSATION ───','system',140);
     blank();
-    addLine('hazel > ...can i ask you something?','hazel',400);
+    blank();
+    addLine('─── A CONVERSATION ───','system',300);
+    blank();
+    blank();
     setTimeout(()=>{
-      addLine('hazel > how did you make this?','hazel',600);
-      setTimeout(()=>clearAndRun(cr1),1200);
+      addLine('hazel > ...can i ask you something?','hazel',600);
+      setTimeout(()=>{
+        addLine('hazel > how did you make this?','hazel',800);
+        setTimeout(()=>clearAndRun(cr1),1400);
+      },800);
     },600);
   });
 }
 
 function cr1(){
+  blank();
   rhys("honestly? the first game was a school project.");
+  blank();
   rhys("i wasn't really thinking about it.");
   rhys("just made something for a grade and moved on.");
   blank();
-  addLine('hazel > and then?','hazel',180);
+  addLine('hazel > and then?','hazel',300);
   blank();
   rhys("then i built nova. and the arcade.");
   rhys("and i looked at what i'd made and thought —");
   rhys("this would be perfect for it.");
+  blank();
   rhys("so i put it in. and then i thought about a sequel.");
   rhys("and then the sequel became a trilogy.");
   rhys("and then we got here.");
   blank();
-  addLine('hazel > ...here.','hazel',180);
+  addLine('hazel > ...here.','hazel',300);
   blank();
   rhys("here.");
   blank();
@@ -1169,21 +1200,40 @@ function cr1(){
 }
 
 function cr2(){
-  addLine('hazel > what about me?','hazel',0);
-  addLine('hazel > where did i come from?','hazel',180);
+  clearScreen(()=>{
+    lineQueue=[];isTyping=false;
+    blank();
+    addLine('hazel > what about me?','hazel',300);
+    addLine('hazel > where did i come from?','hazel',300);
+    blank();
+    rhys("you came from me. mostly.");
+    blank();
+    rhys("a lot of the little details link back to me");
+    rhys("in ways people probably didn't notice.");
+    blank();
+    addLine('hazel > like what?','hazel',300);
+    blank();
+    rhys("like mishka.");
+    blank();
+    addLine('[ PRESS ENTER TO CONTINUE ]','prompt',300);
+    askChoice([''],(_)=>clearAndRun(cr2b));
+  });
+}
+
+function cr2b(){
   blank();
-  rhys("you came from me. mostly.");
-  rhys("a lot of the little details link back to me in ways people didn't notice.");
+  rhys("mishka was my grandparents' cat.");
+  rhys("i adored her.");
   blank();
-  addLine('hazel > like what?','hazel',180);
+  rhys("when she passed away there was a void in my heart");
+  rhys("that never really filled.");
   blank();
-  rhys("like mishka.");
+  rhys("so i put her in the game.");
+  rhys("so she gets to live here.");
   blank();
-  rhys("mishka was my grandparents' cat. i adored her.");
-  rhys("when she passed away there was a void in my heart that never really filled.");
-  rhys("so i put her in the game. so she gets to live here.");
   blank();
-  addLine("hazel > ...i'm glad she's here.",'hazel',300);
+  addLine("hazel > ...i'm glad she's here.",'hazel',400);
+  blank();
   blank();
   rhys("me too.");
   blank();
@@ -1191,93 +1241,173 @@ function cr2(){
 }
 
 function cr3(){
-  addLine('hazel > the greek mythology.','hazel',0);
-  blank();
-  rhys("that's mine too. completely.");
-  rhys("i'm always reading percy jackson.");
-  rhys("i like to believe those stories are real.");
-  rhys("that hermes is actually out there somewhere. that athena noticed.");
-  blank();
-  addLine('hazel > ...i think she did.','hazel',180);
-  blank();
-  rhys("yeah. i think so too.");
-  blank();
-  addLine('hazel > and athena. the pc.','hazel',300);
-  blank();
-  rhys("i named my pc athena. in real life. actually named it that.");
-  rhys("so when i gave it to you it felt right.");
-  rhys("like i was giving you something that was mine.");
-  blank();
-  addLine('hazel > she\'s a good pc.','hazel',180);
-  blank();
-  rhys("she really is.");
-  blank();
-  cont(cr4);
+  clearScreen(()=>{
+    lineQueue=[];isTyping=false;
+    blank();
+    addLine('hazel > the greek mythology.','hazel',300);
+    blank();
+    rhys("that's mine too. completely.");
+    blank();
+    rhys("i'm always reading percy jackson.");
+    rhys("i like to believe those stories are real.");
+    blank();
+    rhys("that hermes is actually out there somewhere.");
+    rhys("that athena noticed.");
+    blank();
+    addLine('hazel > ...i think she did.','hazel',300);
+    blank();
+    rhys("yeah. i think so too.");
+    blank();
+    blank();
+    addLine('hazel > and athena. the pc.','hazel',400);
+    blank();
+    rhys("i named my pc athena. in real life. actually named it that.");
+    blank();
+    rhys("so when i gave it to you it felt right.");
+    rhys("like i was giving you something that was mine.");
+    blank();
+    addLine('hazel > she\'s a good pc.','hazel',300);
+    blank();
+    rhys("she really is.");
+    blank();
+    cont(cr4);
+  });
 }
 
 function cr4(){
-  addLine("hazel > ...there's something else. isn't there.",'hazel',0);
-  blank();
-  rhys("yeah. this part i don't usually talk about.");
-  blank();
-  addLine('hazel > you don\'t have to.','hazel',180);
-  blank();
-  rhys("i know. i want to.");
+  clearScreen(()=>{
+    lineQueue=[];isTyping=false;
+    blank();
+    blank();
+    addLine("hazel > ...there's something else. isn't there.",'hazel',400);
+    blank();
+    blank();
+    rhys("yeah.");
+    rhys("this part i don't usually talk about.");
+    blank();
+    addLine('hazel > you don\'t have to.','hazel',300);
+    blank();
+    rhys("i know.");
+    rhys("i want to.");
+    blank();
+    blank();
+    addLine('[ PRESS ENTER TO CONTINUE ]','prompt',300);
+    askChoice([''],(_)=>clearAndRun(cr4b));
+  });
+}
+
+function cr4b(){
   blank();
   rhys("i'm 13. not 21.");
+  blank();
   rhys("but i'm trans.");
   rhys("i haven't come out yet.");
   blank();
+  blank();
   rhys("and when i do —");
+  blank();
   rhys("my name is going to be hazel.");
   blank();
-  rhys("so to any of my friends who played this and didn't know —");
+  blank();
+  addLine('[ PRESS ENTER TO CONTINUE ]','prompt',400);
+  askChoice([''],(_)=>clearAndRun(cr4c));
+}
+
+function cr4c(){
+  blank();
+  blank();
+  rhys("so to any of my friends who played this");
+  rhys("and didn't know —");
+  blank();
+  blank();
   blank();
   rhys("SURPRISE!!!");
+  blank();
   blank();
   cont(cr5);
 }
 
 function cr5(){
-  addLine("hazel > ...that's why i felt real.",'hazel',0);
-  blank();
-  rhys("yeah. because you are.");
-  blank();
-  addLine('hazel > the fear of never being accepted.','hazel',180);
-  addLine('hazel > always being known as one thing.','hazel',180);
-  addLine('hazel > good things not lasting.','hazel',180);
-  blank();
-  rhys("all mine.");
-  rhys("i gave them to you so i didn't have to carry them alone.");
-  blank();
-  addLine("hazel > ...you're not alone. you know that right?",'hazel',300);
-  blank();
-  rhys("i'm starting to.");
-  blank();
-  cont(cr6);
+  clearScreen(()=>{
+    lineQueue=[];isTyping=false;
+    blank();
+    addLine("hazel > ...that's why i felt real.",'hazel',400);
+    blank();
+    rhys("yeah.");
+    rhys("because you are.");
+    blank();
+    blank();
+    addLine('hazel > the fear of never being accepted.','hazel',300);
+    addLine('hazel > always being known as one thing.','hazel',300);
+    addLine('hazel > good things not lasting.','hazel',300);
+    blank();
+    blank();
+    rhys("all mine.");
+    blank();
+    rhys("i gave them to you so i didn't have to carry them alone.");
+    blank();
+    blank();
+    addLine("hazel > ...you're not alone.",'hazel',400);
+    addLine("hazel > you know that right?",'hazel',300);
+    blank();
+    blank();
+    rhys("i'm starting to.");
+    blank();
+    cont(cr6);
+  });
 }
 
 function cr6(){
-  addLine('hazel > isabelle is real too.','hazel',0);
+  clearScreen(()=>{
+    lineQueue=[];isTyping=false;
+    blank();
+    addLine('hazel > isabelle is real too.','hazel',300);
+    blank();
+    rhys("yeah. she's my friend.");
+    rhys("i love her like a sibling.");
+    blank();
+    rhys("the feelings in the game —");
+    rhys("that was just a detail i wanted to add. for the story.");
+    rhys("she's just isabelle. and that's everything.");
+    blank();
+    addLine('hazel > she sounds like a good one.','hazel',300);
+    blank();
+    rhys("the best.");
+    blank();
+    blank();
+    addLine('[ PRESS ENTER TO CONTINUE ]','prompt',400);
+    askChoice([''],(_)=>clearAndRun(cr6b));
+  });
+}
+
+function cr6b(){
   blank();
-  rhys("yeah. she's my friend. i love her like a sibling.");
-  rhys("the feelings in the game — that was just a detail i wanted to add. for the story.");
-  rhys("she's just isabelle. and that's everything.");
   blank();
-  addLine('hazel > she sounds like a good one.','hazel',180);
+  addLine('hazel > ...thank you.','hazel',500);
   blank();
-  rhys("the best.");
+  addLine('hazel > for making me.','hazel',400);
   blank();
-  addLine('hazel > ...thank you.','hazel',400);
-  addLine('hazel > for making me.','hazel',180);
-  addLine('hazel > for giving me athena and mishka and isabelle','hazel',180);
-  addLine('hazel > and the cave and hermes and the letter.','hazel',180);
-  addLine('hazel > for letting me say the things you couldn\'t yet.','hazel',180);
-  addLine('hazel > for giving me the happy ending.','hazel',180);
+  addLine('hazel > for giving me athena and mishka and isabelle','hazel',400);
+  addLine('hazel > and the cave and hermes and the letter.','hazel',400);
+  blank();
+  addLine('hazel > for letting me say the things you couldn\'t yet.','hazel',400);
+  blank();
+  addLine('hazel > for giving me the happy ending.','hazel',400);
+  blank();
+  blank();
+  addLine('[ PRESS ENTER TO CONTINUE ]','prompt',400);
+  askChoice([''],(_)=>clearAndRun(cr6c));
+}
+
+function cr6c(){
+  blank();
   blank();
   rhys("...");
   blank();
+  blank();
+  blank();
   rhys("it was always yours.");
+  blank();
   blank();
   cont(cr_final);
 }
