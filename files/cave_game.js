@@ -753,6 +753,8 @@ function crystalRightWing(){
   narratorSay("A gallery of smaller crystals. Each contains a tiny frozen scene from a different story.");
   narratorSay("A battle. A wedding. A funeral. A child laughing. An old person alone.");
   narratorSay("One crystal contains a scene you recognise.");
+  narratorSay("A girl. A village. A moment of deciding who she is.");
+  narratorSay("She looks certain. You wonder when that happened.");
   addLine("Options: take it / leave it / shatter it",'prompt',220);
   askChoice(['take it','leave it','shatter it'],(c)=>{
     if(c==='take it'){
@@ -791,7 +793,11 @@ function concertOfShadows(){
   artPrint(`
    ♩ ♪ ♫ ♬ CONCERT OF SHADOWS ♬ ♫ ♪ ♩`);
   divider();
-  narratorSay("You sing. The echoes swell into a chorus of shadows. They applaud, then consume you.");
+  narratorSay("You sing.");
+  narratorSay("The echo comes back.");
+  narratorSay("It doesn't sound quite like you expected.");
+  narratorSay("It never does.");
+  narratorSay("The shadows don't mind. They swell into a chorus. They applaud, then consume you.");
   end(false);
 }
 
@@ -799,6 +805,7 @@ function theWhisper(){
   unlockAchievement("What the Whisper Said","secret");
   narratorSay("You follow the whisper. It says things you don't repeat.");
   narratorSay("On the wall at the end: your name, written in a language you shouldn't be able to read.");
+  narratorSay("Your name. The right one.");
   narratorSay("You can read it anyway.");
   addLine("Options: write back / walk away",'prompt',220);
   askChoice(['write back','walk away'],(c)=>{

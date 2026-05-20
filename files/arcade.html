@@ -268,15 +268,15 @@ let score       = 0;
 let hiScores    = JSON.parse(localStorage.getItem('novaArcadeHi') || '{}');
 
 function getCave3Achievements() {
-  try { const a = JSON.parse(localStorage.getItem('novaCaveAch3')||'[]'); return a.length+'/28'; }
+  try { const a = JSON.parse(localStorage.getItem('novaCaveAch3')||'[]'); return a.length+'/29'; }
   catch(_) { return '0/28'; }
 }
 function getCave2Achievements() {
-  try { const a = JSON.parse(localStorage.getItem('novaCaveAch2')||'[]'); return a.length+'/37'; }
+  try { const a = JSON.parse(localStorage.getItem('novaCaveAch2')||'[]'); return a.length+'/39'; }
   catch(_) { return '0/37'; }
 }
 function getCaveAchievements() {
-  try { const a = JSON.parse(localStorage.getItem('novaCaveAchievements')||'[]'); return `${a.length}/21`; }
+  try { const a = JSON.parse(localStorage.getItem('novaCaveAchievements')||'[]'); return `${a.length}/44`; }
   catch(_) { return '0/21'; }
 }
 

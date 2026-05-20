@@ -324,7 +324,8 @@ function piper_talk_2(){
       blank();
       piper("...");
       piper("i haven't told anyone that in a long time.");
-      piper("good luck. both of you.");
+      if(isabelleWithHazel){ piper("good luck. both of you."); }
+      else{ piper("good luck."); }
     }
     blank();
     piper("don't doubt yourself.");
@@ -353,19 +354,31 @@ function eli_scene(){
   eli("he says it before she can check her phone.");
   eli("he's said it a lot.");
   blank();
-  N("Late 20s. Locking up a small cafe. Sees them at the stop.");
+  N("Late 20s. Locking up a small cafe. Sees " + (isabelleWithHazel ? "them" : "her") + " at the stop.");
   blank();
   eli("there's a bench inside if you need to wait till morning.");
   blank();
-  addLine("Options: 1 / 2",'prompt',220);
-  addLine("  1. thanks.",'prompt',80);
-  addLine("  2. how'd you know we needed somewhere?",'prompt',80);
-  askChoice(["1","2"],(c)=>{
-    if(c==="1"){hazel("thanks.");eli("...");eli("no problem.");}
-    else{hazel("how'd you know we needed somewhere?");eli("you had the look.");hazel("what look?");eli("everyone gets it eventually.");unlockAchievement("The Look","common");}
-    blank();
-    cont(eli_inside);
-  });
+  if(isabelleWithHazel){
+    addLine("Options: 1 / 2",'prompt',220);
+    addLine("  1. thanks.",'prompt',80);
+    addLine("  2. how'd you know we needed somewhere?",'prompt',80);
+    askChoice(["1","2"],(c)=>{
+      if(c==="1"){hazel("thanks.");eli("...");eli("no problem.");}
+      else{hazel("how'd you know we needed somewhere?");eli("you had the look.");hazel("what look?");eli("everyone gets it eventually.");unlockAchievement("The Look","common");}
+      blank();
+      cont(eli_inside);
+    });
+  } else {
+    addLine("Options: 1 / 2",'prompt',220);
+    addLine("  1. thanks.",'prompt',80);
+    addLine("  2. how'd you know?",'prompt',80);
+    askChoice(["1","2"],(c)=>{
+      if(c==="1"){hazel("thanks.");eli("...");eli("no problem.");}
+      else{hazel("how'd you know?");eli("you had the look.");hazel("what look?");eli("everyone gets it eventually.");unlockAchievement("The Look","common");}
+      blank();
+      cont(eli_inside);
+    });
+  }
 }
 
 function eli_inside(){
@@ -378,6 +391,9 @@ function eli_inside(){
   N("Hazel notices the way his jaw tightens slightly when people pass outside.");
   N("The way he watches the window a beat too long.");
   N("She knows that look from the inside.");
+  N("The particular thing of being exactly yourself and having that be the problem.");
+  N("Of a voice that gives people something to point at.");
+  N("Of being known as one thing by people who decided a long time ago.");
   blank();
   addLine("Options: 1 / 2",'prompt',220);
   addLine("  1. you've been here a while.",'prompt',80);
@@ -878,7 +894,19 @@ function cave_water_2(){
   N("Not the version she shows people when she's being careful.");
   N("Not the version she sees in bad mirrors and bad moments.");
   blank();
-  N("Just herself. Plainly. The way she actually is.");
+  N("Herself. The way she actually is.");
+  blank();
+  N("She has been herself since she was thirteen.");
+  N("That's when she knew. That's when she became.");
+  N("The world has been catching up since then in small ways.");
+  blank();
+  N("One of those ways is still catching up.");
+  N("She can hear it every time she speaks.");
+  N("She has always been able to hear it.");
+  blank();
+  N("But the pool doesn't show her the voice.");
+  N("The pool shows her everything else.");
+  N("All the parts that are exactly right.");
   blank();
   N("She's been waiting for that for a long time.");
   blank();
@@ -1509,7 +1537,10 @@ function alone_the_words(){
   hazel("i should have said it before i left.");
   hazel("i'm saying it now.");
   blank();
-  N("Silence.");
+  N("She hears her own voice saying it.");
+  N("The voice she has always had complicated feelings about.");
+  N("It doesn't sound like it usually does to her.");
+  N("It sounds like someone who means it.");
   blank();
   isabelle("...");
   isabelle("hazel.");
@@ -2005,15 +2036,16 @@ function showAchievementPanel(){
   panel.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;align-items:center;justify-content:center;font-family:"Share Tech Mono",monospace;color:#00ff41;';
   const RC={common:'#aaa',rare:'#58a6ff',secret:'#f0f',legendary:'#f80',mythic:'#ff0',epic:'#a855f7'};
   const ALL=[
-    {n:'Piper',r:'rare'},{n:'Eli',r:'rare'},{n:'The Look',r:'common'},
-    {n:'You Fit',r:'legendary'},{n:'May',r:'rare'},
-    {n:'Took a Breath',r:'common'},{n:'Said Hello to the Owl',r:'common'},
-    {n:'Good Question Again',r:'rare'},{n:'Saw Herself',r:'epic'},
-    {n:'The Voice',r:'legendary'},{n:'I Know',r:'secret'},
+    {n:'Carry It With You',r:'rare'},{n:'Piper',r:'rare'},
+    {n:'The Look',r:'common'},{n:'Eli',r:'rare'},{n:'You Fit',r:'legendary'},
+    {n:'May',r:'rare'},{n:'Took a Breath',r:'common'},{n:'Round 2',r:'secret'},
+    {n:'Those Who Came Before',r:'rare'},{n:'Still Going',r:'rare'},{n:'Needed That',r:'common'},
+    {n:'Two Coins',r:'secret'},{n:'Found One Anyway',r:'secret'},{n:'Made It Wait',r:'common'},
+    {n:'Saw Herself',r:'epic'},{n:'The Voice',r:'legendary'},
+    {n:'I Know',r:'secret'},{n:'Told Her About the Letter',r:'epic'},
     {n:'The Coin Explained',r:'secret'},{n:'Didn\'t Need It',r:'epic'},
     {n:'Why Me',r:'rare'},{n:'Athena Was Watching',r:'epic'},
-    {n:'Around',r:'secret'},{n:'Fond',r:'legendary'},
-    {n:'The Messenger Read It',r:'secret'},{n:'Told Her About the Letter',r:'epic'},
+    {n:'Around',r:'secret'},{n:'Fond',r:'legendary'},{n:'The Messenger Read It',r:'secret'},
     {n:'She Reached First',r:'epic'},{n:'Said It',r:'mythic'},
     {n:'For You',r:'mythic'},{n:'Tested Hermes',r:'rare'},
   ];

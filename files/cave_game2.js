@@ -404,13 +404,24 @@ function scene3_village(){
   N("'You were missing.'");
   N("Not a question.");
   blank();
-  addLine("Options: wasn't missing. knew exactly where i was. / morning. / ...",'prompt',220);
-  askChoice(['wasn\'t missing. knew exactly where i was.','morning.','...'],(c)=>{
-    if(c==='wasn\'t missing. knew exactly where i was.'){
+  N("And then — deliberately, the way some people do it deliberately —");
+  N("the wrong name. the wrong word.");
+  blank();
+  N("She goes quiet.");
+  N("The way she always goes quiet.");
+  N("Not because she doesn't have something to say.");
+  N("Because it isn't worth the energy. Because she knows exactly what it is.");
+  blank();
+  addLine("Options: 1 / 2 / 3",'prompt',220);
+  addLine("  1. wasn't missing. knew exactly where i was.",'prompt',80);
+  addLine("  2. morning.",'prompt',80);
+  addLine("  3. ...",'prompt',80);
+  askChoice(["1","2","3"],(c)=>{
+    if(c==="1"){
       hazel("wasn't missing. knew exactly where i was.");
       addLine("UPDATE: LOCAL RESIDENT RESPONDS WITH CHARACTERISTIC DRY TONE —","ticker",140);
       N("The neighbour watches her walk away.");
-    } else if(c==='morning.'){
+    } else if(c==="2"){
       hazel("morning.");
       addLine("UPDATE: MINIMAL ENGAGEMENT STRATEGY DEPLOYED —","ticker",140);
       N("She walks straight past.");
@@ -420,6 +431,9 @@ function scene3_village(){
       addLine("UPDATE: LOCAL RESIDENT DECLINES TO COMMENT —","ticker",140);
       N("She doesn't stop. The neighbour watches her go.");
     }
+    blank();
+    N("She doesn't think about it again.");
+    N("She has had a lot of practice not thinking about it again.");
     cont(scene3_chooseOrder);
   });
 }
@@ -923,15 +937,19 @@ function demon_q3(){
   blank();
   addLine("...If you go north — and you will — what are you most afraid of leaving behind?","demon",220);
   blank();
-  addLine("Options: isabelle. / athena. / ...nothing.",'prompt',220);
-  askChoice(['isabelle.','athena.','...nothing.'],(c)=>{
-    if(c==='isabelle.'){
+  addLine("Options: 1 / 2 / 3 / 4",'prompt',220);
+  addLine("  1. isabelle.",'prompt',80);
+  addLine("  2. athena.",'prompt',80);
+  addLine("  3. ...nothing.",'prompt',80);
+  addLine("  4. my voice.",'prompt',80);
+  askChoice(["1","2","3","4"],(c)=>{
+    if(c==="1"){
       hazel("isabelle.");
       blank();
       addLine("...","demon",220);
       addLine("...Yes. I thought so.","demon",220);
       unlockAchievement("Isabelle","legendary");
-    } else if(c==='athena.'){
+    } else if(c==="2"){
       hazel("athena.");
       blank();
       addLine("...","demon",220);
@@ -940,12 +958,25 @@ function demon_q3(){
       addLine("...","demon",220);
       addLine("...That makes complete sense, actually.","demon",220);
       unlockAchievement("Correct Priorities (Part Two)","rare");
-    } else {
+    } else if(c==="3"){
       hazel("...nothing.");
       blank();
       addLine("...","demon",220);
       addLine("...","demon",300);
       addLine("...You're lying. That's okay. Most people do, on the third question.","demon",220);
+    } else {
+      hazel("my voice.");
+      blank();
+      addLine("...","demon",220);
+      addLine("...","demon",300);
+      blank();
+      addLine("...I've heard your voice.","demon",220);
+      addLine("...It's yours. It will always have been yours.","demon",300);
+      blank();
+      N("She doesn't answer.");
+      N("But something in her chest does something.");
+      blank();
+      unlockAchievement("It's Yours","legendary");
     }
     cont(demon_leave);
   });
@@ -1630,26 +1661,20 @@ function showAchievementPanel(){
   panel.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;align-items:center;justify-content:center;font-family:"Share Tech Mono",monospace;color:#00ff41;';
   const RC={common:'#aaa',rare:'#58a6ff',secret:'#f0f',legendary:'#f80',mythic:'#ff0',epic:'#a855f7'};
   const ALL=[
-    {n:'First Question',r:'rare'},{n:'The Silent Type',r:'common'},
-    {n:'Good Question',r:'rare'},{n:'Reasonable Response',r:'rare'},
-    {n:'Correct Priorities (Part One)',r:'rare'},{n:'Mishka Was Fine',r:'common'},
-    {n:'Read It Again',r:'common'},{n:'Don\'t',r:'secret'},
-    {n:'Still Here',r:'rare'},{n:'One Decent Person',r:'rare'},
-    {n:'Easier That Way',r:'common'},{n:'Accepted',r:'rare'},
-    {n:'Almost',r:'epic'},{n:'Said It Out Loud',r:'epic'},
-    {n:'Don\'t Go Yet',r:'legendary'},{n:'Said Nothing',r:'epic'},
-    {n:'He Won\'t',r:'secret'},{n:'3am Knows Everything',r:'secret'},
-    {n:'Isabelle',r:'legendary'},{n:'Correct Priorities (Part Two)',r:'rare'},
-    {n:'First Name',r:'secret'},{n:'Not Quite An Answer',r:'rare'},
-    {n:'The Flood',r:'rare'},{n:'Too True',r:'epic'},
-    {n:'Said Nothing (Again)',r:'epic'},{n:'Goodbye Athena',r:'legendary'},
-    {n:'Mishka Will Be Fine',r:'common'},{n:'The Promise',r:'epic'},
-    {n:'She Knows',r:'epic'},{n:'The Agreement',r:'legendary'},
-    {n:'Not An Answer',r:'rare'},{n:'Not Entirely True',r:'secret'},
-    {n:'Asked Him For Something',r:'secret'},{n:'Tested the GPS',r:'rare'},
-    {n:'North',r:'mythic'},
-    {n:'Going Alone',r:'rare'},
-    {n:'Together',r:'legendary'},
+    {n:'Tested the GPS',r:'rare'},{n:'First Question',r:'rare'},{n:'The Silent Type',r:'common'},
+    {n:'Good Question',r:'rare'},{n:'Too Slow',r:'common'},{n:'Reasonable Response',r:'rare'},
+    {n:'Correct Priorities (Part One)',r:'rare'},{n:'Don\'t',r:'secret'},{n:'Mishka Was Fine',r:'common'},
+    {n:'Read It Again',r:'common'},{n:'Easier That Way',r:'common'},{n:'Still Here',r:'rare'},
+    {n:'One Decent Person',r:'rare'},{n:'Accepted',r:'rare'},{n:'Almost',r:'epic'},
+    {n:'Said It Out Loud',r:'epic'},{n:'Don\'t Go Yet',r:'legendary'},{n:'Said Nothing',r:'epic'},
+    {n:'3am Knows Everything',r:'secret'},{n:'Isabelle',r:'legendary'},
+    {n:'Correct Priorities (Part Two)',r:'rare'},{n:'It\'s Yours',r:'legendary'},
+    {n:'First Name',r:'secret'},{n:'Not Quite An Answer',r:'rare'},{n:'The Flood',r:'rare'},
+    {n:'Said Nothing (Again)',r:'epic'},{n:'Too True',r:'epic'},{n:'He Won\'t',r:'secret'},
+    {n:'Goodbye Athena',r:'legendary'},{n:'Asked Him For Something',r:'secret'},
+    {n:'Mishka Will Be Fine',r:'common'},{n:'The Promise',r:'epic'},{n:'She Knows',r:'epic'},
+    {n:'Not Entirely True',r:'secret'},{n:'Not An Answer',r:'rare'},{n:'The Agreement',r:'legendary'},
+    {n:'Going Alone',r:'rare'},{n:'Together',r:'legendary'},{n:'North',r:'mythic'},
   ];
   const un=new Set(all.map(a=>a.name));
   const rows=ALL.map(a=>{
