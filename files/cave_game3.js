@@ -411,7 +411,10 @@ function eli_inside(){
       N("He doesn't ask.");
       N("Some conversations don't need the whole sentence.");
       blank();
-      unlockAchievement("Eli","rare");
+      cont(()=>{
+        unlockAchievement("Eli","rare");
+        cont(eli_morning);
+      });
     } else {
       hazel("...");
       eli("...");
@@ -943,6 +946,11 @@ function cave_voice_2(){
   blank();
   N("She knew her name.");
   blank();
+  cont(cave_voice_3);
+}
+
+function cave_voice_3(){
+  currentNarrator='narrator';
   N("She just needed to walk far enough");
   N("to trust herself");
   N("to believe it.");
@@ -1389,17 +1397,27 @@ function isabelle_responds_2(){
   currentNarrator='narrator';
   isabelle("hazel.");
   hazel("yeah.");
-  isabelle("i named my computer athena.");
+  isabelle("i named my wifi hermes.");
   blank();
   hazel("...");
-  hazel("...you named your computer athena.");
+  hazel("you named your wifi hermes.");
   isabelle("yes.");
-  hazel("i named MY computer athena.");
-  isabelle("i know.");
-  hazel("for the same—");
-  isabelle("yes hazel. for the same reason.");
+  hazel("like — the greek god hermes.");
+  isabelle("i thought it was funny. god of messengers. wifi.");
+  hazel("...");
+  hazel("isabelle.");
+  isabelle("yeah.");
+  hazel("i named my computer athena.");
   blank();
   N("A beat.");
+  blank();
+  isabelle("...");
+  isabelle("because of the goddess of wisdom.");
+  hazel("yeah.");
+  isabelle("and i named my wifi hermes because of the god of messages.");
+  hazel("yeah.");
+  blank();
+  N("They look at each other.");
   blank();
   hazel("we're both very stupid.");
   isabelle("we really are.");
@@ -1452,15 +1470,15 @@ function alone_isabelle_door(){
   currentNarrator='narrator';
   artPrint(`
    [ isabelle's door ]
-   evening. mishka on the windowsill.
+   evening. light on inside.
    isabelle: home.`);
   divider();
   N("Isabelle's door. She's been here a thousand times.");
   N("Her hand is raised to knock.");
   blank();
-  N("Inside: the light on. Mishka on the windowsill. Everything familiar.");
+  N("Inside: the light on. The familiar shape of it through the curtain.");
   blank();
-  N("Except her.");
+  N("Except her. She's different now.");
   blank();
   hermes("Don't doubt yourself. Do it before it's too late.");
   blank();
@@ -1480,7 +1498,6 @@ function alone_opens(){
   hazel("i need to tell you something.");
   blank();
   N("Isabelle steps back. Lets her in.");
-  N("Mishka immediately comes over. Hazel picks her up. Mishka walks away unbothered.");
   blank();
   cont(alone_the_words);
 }
@@ -1511,20 +1528,23 @@ function alone_the_words(){
 
 function alone_the_words_2(){
   currentNarrator='narrator';
-  isabelle("i named my computer athena.");
+  isabelle("i named my wifi hermes.");
   blank();
   hazel("...");
-  hazel("you named your computer athena.");
-  isabelle("yes.");
-  hazel("i named MY computer athena.");
-  isabelle("i know.");
-  hazel("for the same—");
-  isabelle("yes hazel. for the same reason.");
+  hazel("you named your wifi hermes.");
+  isabelle("god of messengers. i thought it was funny.");
+  hazel("isabelle.");
+  isabelle("yeah.");
+  hazel("i named my computer athena.");
   blank();
   N("A beat.");
   blank();
-  hazel("we've been very stupid.");
-  isabelle("we really have.");
+  isabelle("...");
+  isabelle("athena. goddess of wisdom.");
+  hazel("yeah.");
+  isabelle("and i named mine hermes. god of messages.");
+  hazel("we were doing the same thing.");
+  isabelle("we really were.");
   blank();
   N("Mishka walks past. Completely unbothered.");
   N("Isabelle laughs. Hazel laughs. The flat. The familiar light. Athena on the desk.");
@@ -1714,6 +1734,14 @@ function cr3(){
     blank();
     rhys("yeah. i think so too.");
     blank();
+    addLine('[ PRESS ENTER TO CONTINUE ]','prompt',300);
+    askChoice([''],(_)=>clearAndRun(cr3b));
+  });
+}
+
+function cr3b(){
+  clearScreen(()=>{
+    lineQueue=[];isTyping=false;
     blank();
     addLine('hazel > and athena. the pc.','hazel',400);
     blank();
@@ -1873,40 +1901,65 @@ function cr_final(){
     lineQueue=[];isTyping=false;
     blank();
     blank();
+    blank();
     addLine('  ─────────────────────────────────────────','divider',200);
     blank();
-    addLine('       not for someone like you.','final',300);
+    addLine('       not for someone like you.','final',400);
     blank();
-    addLine('       for you.','final',500);
+    addLine('       for you.','final',700);
     blank();
-    addLine('  ─────────────────────────────────────────','divider',700);
+    addLine('  ─────────────────────────────────────────','divider',900);
+    blank();
     blank();
     setTimeout(()=>{
-      blank();
-      addLine('╔════════════════════════════════════════════╗','art',100);
-      addLine('║                                            ║','art',80);
-      addLine('║      thank you for playing.                ║','credits',140);
-      addLine('║                                            ║','art',80);
-      addLine('║      this game was made with love          ║','credits',140);
-      addLine('║      and a lot of late nights              ║','credits',140);
-      addLine('║      and one real cat named mishka         ║','credits',140);
-      addLine('║      and a pc named athena                 ║','credits',140);
-      addLine('║      and a name i\'m still growing into.    ║','credits',140);
-      addLine('║                                            ║','art',80);
-      addLine('║      if you\'re carrying something          ║','credits',140);
-      addLine('║      you haven\'t said yet —                ║','credits',140);
-      addLine('║      i hope you find your cave.            ║','credits',140);
-      addLine('║      i hope it was waiting for you.        ║','credits',140);
-      addLine('║                                            ║','art',80);
-      addLine('║                  — Rhys / Hazel            ║','credits',140);
-      addLine('║                                            ║','art',80);
-      addLine('╚════════════════════════════════════════════╝','art',100);
-      blank();
-      setTimeout(()=>{
-        addLine('[ PRESS ENTER ]','prompt',300);
-        askChoice([''],(_)=>clearAndRun(playAgain));
-      },3500);
-    },1200);
+      addLine('[ PRESS ENTER ]','prompt',300);
+      askChoice([''],(_)=>clearAndRun(cr_thankyou));
+    },1500);
+  });
+}
+
+function cr_thankyou(){
+  clearScreen(()=>{
+    lineQueue=[];isTyping=false;
+    blank();
+    addLine('╔════════════════════════════════════════════╗','art',100);
+    addLine('║                                            ║','art',80);
+    addLine('║      thank you for playing.                ║','credits',140);
+    addLine('║                                            ║','art',80);
+    addLine('║      this game was made with love          ║','credits',140);
+    addLine('║      and a lot of late nights              ║','credits',140);
+    addLine('║      and one real cat named mishka         ║','credits',140);
+    addLine('║      and a pc named athena                 ║','credits',140);
+    addLine('║      and a name i\'m still growing into.    ║','credits',140);
+    addLine('║                                            ║','art',80);
+    addLine('╚════════════════════════════════════════════╝','art',100);
+    blank();
+    addLine('[ PRESS ENTER TO CONTINUE ]','prompt',400);
+    askChoice([''],(_)=>clearAndRun(cr_thankyou2));
+  });
+}
+
+function cr_thankyou2(){
+  clearScreen(()=>{
+    lineQueue=[];isTyping=false;
+    blank();
+    blank();
+    addLine('╔════════════════════════════════════════════╗','art',100);
+    addLine('║                                            ║','art',80);
+    addLine('║      if you\'re carrying something          ║','credits',140);
+    addLine('║      you haven\'t said yet —                ║','credits',140);
+    addLine('║                                            ║','art',80);
+    addLine('║      i hope you find your cave.            ║','credits',200);
+    addLine('║      i hope it was waiting for you.        ║','credits',200);
+    addLine('║                                            ║','art',80);
+    addLine('║                  — Rhys / Hazel            ║','credits',300);
+    addLine('║                                            ║','art',80);
+    addLine('╚════════════════════════════════════════════╝','art',100);
+    blank();
+    setTimeout(()=>{
+      addLine('[ PRESS ENTER ]','prompt',300);
+      askChoice([''],(_)=>clearAndRun(playAgain));
+    },2000);
   });
 }
 

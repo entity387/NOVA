@@ -7,12 +7,19 @@ const achCount   = document.getElementById('achCount');
 const titleArtEl = document.getElementById('titleArt');
 
 titleArtEl.textContent =
-`  ██████╗ █████╗ ██╗   ██╗███████╗     █████╗ ██████╗ ██╗   ██╗███████╗███╗   ██╗████████╗██╗   ██╗██████╗ ███████╗
- ██╔════╝██╔══██╗██║   ██║██╔════╝    ██╔══██╗██╔══██╗██║   ██║██╔════╝████╗  ██║╚══██╔══╝██║   ██║██╔══██╗██╔════╝
- ██║     ███████║██║   ██║█████╗      ███████║██║  ██║██║   ██║█████╗  ██╔██╗ ██║   ██║   ██║   ██║██████╔╝█████╗
- ██║     ██╔══██║╚██╗ ██╔╝██╔══╝      ██╔══██║██║  ██║╚██╗ ██╔╝██╔══╝  ██║╚██╗██║   ██║   ██║   ██║██╔══██╗██╔══╝
- ╚██████╗██║  ██║ ╚████╔╝ ███████╗    ██║  ██║██████╔╝ ╚████╔╝ ███████╗██║ ╚████║   ██║   ╚██████╔╝██║  ██║███████╗
-  ╚═════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝    ╚═╝  ╚═╝╚═════╝   ╚═══╝  ╚══════╝╚═╝  ╚═══╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚══════╝`;
+` ████████╗██╗  ██╗███████╗    ██╗    ██╗██████╗  ██████╗ ███╗   ██╗ ██████╗
+    ██╔══╝██║  ██║██╔════╝    ██║    ██║██╔══██╗██╔═══██╗████╗  ██║██╔════╝
+    ██║   ███████║█████╗      ██║ █╗ ██║██████╔╝██║   ██║██╔██╗ ██║██║  ███╗
+    ██║   ██╔══██║██╔══╝      ██║███╗██║██╔══██╗██║   ██║██║╚██╗██║██║   ██║
+    ██║   ██║  ██║███████╗    ╚███╔███╔╝██║  ██║╚██████╔╝██║ ╚████║╚██████╔╝
+    ╚═╝   ╚═╝  ╚═╝╚══════╝     ╚══╝╚══╝ ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝
+   ██████╗ █████╗ ██╗   ██╗███████╗
+  ██╔════╝██╔══██╗██║   ██║██╔════╝
+  ██║     ███████║██║   ██║█████╗
+  ██║     ██╔══██║╚██╗ ██╔╝██╔══╝
+  ╚██████╗██║  ██║ ╚████╔╝ ███████╗
+   ╚═════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝
+  S O M E O N E   L I K E   Y O U   ·   I : T H E   W R O N G   C A V E`;
 
 const SAVE_KEY = 'novaCaveAchievements';
 function loadSaved(){ try{return JSON.parse(localStorage.getItem(SAVE_KEY)||'[]');}catch(_){return[];} }
@@ -224,6 +231,10 @@ function mirrorRoom(){
       narratorSay("The reflection smiles. \"I am the version of you that always makes the right choice.\"");
       narratorSay("\"Then why are you in there?\"");
       narratorSay("It stops smiling.");
+      narratorSay("...");
+      narratorSay("I wasn't going to say anything.");
+      narratorSay("But the reflection looks a little like someone I know.");
+      narratorSay("Someone who is going to find a different cave eventually. A real one.");
       narratorSay("The mirror cracks. A door opens behind it. You step through into light.");
       end();
     } else if(c==='smash'){
