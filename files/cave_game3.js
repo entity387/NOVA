@@ -904,6 +904,11 @@ function cave_water_2(){
   N("She can hear it every time she speaks.");
   N("She has always been able to hear it.");
   blank();
+  cont(cave_water_3);
+}
+
+function cave_water_3(){
+  currentNarrator='narrator';
   N("But the pool doesn't show her the voice.");
   N("The pool shows her everything else.");
   N("All the parts that are exactly right.");
@@ -1080,6 +1085,12 @@ function hermes_reveal(){
       blank();
       addLine("For you.","art-gold",300);
       blank();
+      N("Hazel takes the letter out of her pocket.");
+      N("She has read it many times. She knows every word.");
+      N("But she reads it again now. Knowing who A is.");
+      blank();
+      unlockAchievement("Told Her About the Letter","epic");
+      cont(read_the_letter);
     } else if(c==="2"){
       hazel("the voicemail. the stranger on the road.");
       blank();
@@ -1105,6 +1116,96 @@ function hermes_reveal(){
     }
     cont(hermes_coin);
   });
+}
+
+function read_the_letter(){
+  currentNarrator='narrator';
+  divider();
+  blank();
+  addLine("Hazel,","letter",400);
+  blank();
+  addLine("You won't know who this is when you read it the first time.","letter",300);
+  addLine("That's alright. You'll know later. Read it again then.","letter",300);
+  blank();
+  cont(read_the_letter_2);
+}
+
+function read_the_letter_2(){
+  currentNarrator='narrator';
+  addLine("I've been watching you since you were fifteen.","letter",300);
+  addLine("You named something after me.","letter",300);
+  addLine("You did it carefully, like it mattered.","letter",300);
+  addLine("It did.","letter",500);
+  blank();
+  addLine("I watch a lot of people.","letter",300);
+  addLine("Most of them I watch from a distance.","letter",300);
+  addLine("You I've been closer to.","letter",300);
+  addLine("I sent someone to walk beside your story —","letter",300);
+  addLine("you'll have figured out who by the time this makes sense.","letter",300);
+  blank();
+  cont(read_the_letter_3);
+}
+
+function read_the_letter_3(){
+  currentNarrator='narrator';
+  addLine("There is a cave.","letter",400);
+  addLine("It has been waiting for you specifically.","letter",300);
+  addLine("Not for someone like you.","letter",300);
+  addLine("For you.","letter",600);
+  blank();
+  addLine("It will show you something the world has been getting wrong.","letter",300);
+  blank();
+  addLine("You already know what it is.","letter",300);
+  addLine("You've known for a long time.","letter",300);
+  addLine("The cave will just let you see it clearly.","letter",300);
+  blank();
+  cont(read_the_letter_4);
+}
+
+function read_the_letter_4(){
+  currentNarrator='narrator';
+  addLine("About Isabelle —","letter",400);
+  addLine("yes, I know about Isabelle.","letter",300);
+  addLine("I've known since before you did.","letter",300);
+  addLine("I'm not going to tell you what to do with that.","letter",300);
+  addLine("You already know.","letter",300);
+  addLine("You've known that for a long time too.","letter",300);
+  blank();
+  cont(read_the_letter_5);
+}
+
+function read_the_letter_5(){
+  currentNarrator='narrator';
+  addLine("The voice will catch up.","letter",400);
+  addLine("I want you to know that.","letter",300);
+  addLine("It is already yours.","letter",300);
+  addLine("It has always been yours.","letter",300);
+  addLine("The world is just slow.","letter",500);
+  blank();
+  addLine("Come to the cave.","letter",400);
+  addLine("Come when you're ready.","letter",300);
+  addLine("It will wait.","letter",300);
+  blank();
+  addLine("You were worth watching.","letter",400);
+  blank();
+  addLine("— A","letter",600);
+  blank();
+  divider();
+  blank();
+  N("She folds it. Puts it back.");
+  blank();
+  if(isabelleWithHazel){
+    N("Isabelle is watching her.");
+    N("She doesn't ask. She just puts her hand on Hazel's arm for a moment.");
+    N("That's enough.");
+  } else {
+    N("Hermes is quiet.");
+    N("He gave her that.");
+    N("She thinks she knew he would.");
+  }
+  blank();
+  unlockAchievement("Read It Again","legendary");
+  cont(hermes_coin);
 }
 
 function hermes_coin(){
@@ -1523,9 +1624,26 @@ function alone_opens(){
   hazel("yeah.");
   isabelle("are you okay?");
   hazel("yeah.");
-  hazel("i need to tell you something.");
   blank();
-  N("Isabelle steps back. Lets her in.");
+  hazel("can you come over? i need to tell you something.");
+  blank();
+  N("Isabelle grabs her keys without hesitating.");
+  blank();
+  isabelle("yeah. of course.");
+  blank();
+  cont(alone_walk);
+}
+
+function alone_walk(){
+  currentNarrator='narrator';
+  N("They walk back to Hazel's flat.");
+  N("It's not far. Isabelle doesn't ask questions on the way.");
+  N("She never does. She waits until Hazel is ready.");
+  blank();
+  N("Hazel lets them in. Mishka comes to her immediately.");
+  N("She picks her up. Mishka tolerates it for longer than usual.");
+  blank();
+  N("Isabelle sits on the sofa. Hazel puts Mishka down.");
   blank();
   cont(alone_the_words);
 }
@@ -1542,6 +1660,13 @@ function alone_the_words(){
   N("It doesn't sound like it usually does to her.");
   N("It sounds like someone who means it.");
   blank();
+  N("Silence.");
+  blank();
+  cont(alone_the_words_isabelle);
+}
+
+function alone_the_words_isabelle(){
+  currentNarrator='narrator';
   isabelle("...");
   isabelle("hazel.");
   hazel("yeah.");
@@ -2043,6 +2168,7 @@ function showAchievementPanel(){
     {n:'Two Coins',r:'secret'},{n:'Found One Anyway',r:'secret'},{n:'Made It Wait',r:'common'},
     {n:'Saw Herself',r:'epic'},{n:'The Voice',r:'legendary'},
     {n:'I Know',r:'secret'},{n:'Told Her About the Letter',r:'epic'},
+    {n:'Read It Again',r:'legendary'},
     {n:'The Coin Explained',r:'secret'},{n:'Didn\'t Need It',r:'epic'},
     {n:'Why Me',r:'rare'},{n:'Athena Was Watching',r:'epic'},
     {n:'Around',r:'secret'},{n:'Fond',r:'legendary'},{n:'The Messenger Read It',r:'secret'},
