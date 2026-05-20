@@ -1063,10 +1063,22 @@ function boot(){
   setTimeout(()=>clearAndRun(playGame),2200);
 }
 
+const NARRATORS = ['default','professor','rhys','ghost','robot','bard'];
+
 inputField.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&inputCallback){
     const val=inputField.value.trim().toLowerCase();
     inputField.value='';
+    // Secret: type 'narrator' to cycle narrators
+    if(val==='narrator'){
+      const idx=NARRATORS.indexOf(currentNarrator);
+      currentNarrator=NARRATORS[(idx+1)%NARRATORS.length];
+      const labels={default:'Default Narrator',professor:'Professor',rhys:'Rhys',ghost:'Ghost',robot:'NARRATOR UNIT-7',bard:'The Bard'};
+      addLine(`[ NARRATOR: ${labels[currentNarrator].toUpperCase()} ]`,'achievement',0);
+      return;
+    }
+    // Secret: type 'credits' to show credits
+    if(val==='credits'){ clearAndRun(showCredits); return; }
     const cb=inputCallback; inputCallback=null;
     addLine('>> '+val,'system',0);
     cb(val);
