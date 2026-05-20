@@ -944,6 +944,7 @@ onAuthStateChanged(auth, async user => {
   ME.rulesAccepted = snap.data().rulesAccepted || false;
   if (!ME.username) ME.username = ME.email.split('@')[0];
   ME.og = snap.data().og || false;
+  sessionStorage.setItem('nova_role', ME.role || 'User');
 
   // Apply saved theme
   if (ME.theme) setTheme(ME.theme);

@@ -242,10 +242,9 @@ const GAMES = [
   { id:'pong',      name:'PONG',            icon:'🏓', color:'#fff' },
   { id:'scramble',  name:'SCRAMBLE',        icon:'✈️',  color:'#f80' },
   { id:'asteroids', name:'ASTEROIDS',       icon:'☄️',  color:'#fff' },
-  { id:'cave',      name:'THE WRONG CAVE',  icon:'🕯️',  color:'#0f0', external:true, extUrl:'cave_adventure.html', trilogy:true },
-  { id:'cave2',     name:'THE ROAD HOME',    icon:'🌲',  color:'#0f0', external:true, extUrl:'cave_adventure_2.html', trilogy:true },
-  { id:'cave3',     name:'FOR YOU',          icon:'🌟',  color:'#ffd700', external:true, extUrl:'cave_adventure_3.html', trilogy:true },
-  { id:'cave3',     name:'FOR YOU',          icon:'🌟',  color:'#0f0', external:true, extUrl:'cave_adventure_3.html', trilogy:true },
+  { id:'cave',      name:'THE WRONG CAVE',  icon:'🕯️',  color:'#0f0',    external:true, extUrl:'cave_adventure.html',   trilogy:true },
+  { id:'cave2',     name:'THE ROAD HOME',   icon:'🌲',  color:'#0f0',    external:true, extUrl:'cave_adventure_2.html',  trilogy:true },
+  { id:'cave3',     name:'FOR YOU',         icon:'🌟',  color:'#ffd700', external:true, extUrl:'cave_adventure_3.html',  trilogy:true, ownerOnly:true },
 ];
 
 const lobby      = document.getElementById('lobby');
@@ -257,21 +256,21 @@ const hudScore   = document.getElementById('hudScore');
 const gameMsg    = document.getElementById('gameMsg');
 const backBtn    = document.getElementById('backBtn');
 
+const NOVA_ROLE = sessionStorage.getItem('nova_role') || '';
+const IS_OWNER  = NOVA_ROLE === 'Owner';
+
 let currentGame = null;
 let gameLoop    = null;
 let score       = 0;
 let hiScores    = JSON.parse(localStorage.getItem('novaArcadeHi') || '{}');
+
 function getCave3Achievements() {
-  try { const a = JSON.parse(localStorage.getItem('novaCaveAch3')||'[]'); return a.length+'/35'; }
-  catch(_) { return '0/35'; }
+  try { const a = JSON.parse(localStorage.getItem('novaCaveAch3')||'[]'); return a.length+'/28'; }
+  catch(_) { return '0/28'; }
 }
 function getCave2Achievements() {
   try { const a = JSON.parse(localStorage.getItem('novaCaveAch2')||'[]'); return a.length+'/37'; }
   catch(_) { return '0/37'; }
-}
-function getCave3Achievements() {
-  try { const a = JSON.parse(localStorage.getItem('novaCaveAch3')||'[]'); return a.length+'/28'; }
-  catch(_) { return '0/28'; }
 }
 function getCaveAchievements() {
   try { const a = JSON.parse(localStorage.getItem('novaCaveAchievements')||'[]'); return `${a.length}/21`; }
@@ -333,14 +332,20 @@ function renderLobby() {
   const trilogyGames = GAMES.filter(g=>g.trilogy);
   const arcadeGames  = GAMES.filter(g=>!g.trilogy);
 
-  const comingSoon = '';
-
   const trilogyCards = trilogyGames.map(g => {
+    if(g.ownerOnly && !IS_OWNER){
+      return '<div class="game-card trilogy-card" style="opacity:0.4;cursor:default;pointer-events:none">' +
+        '<span class="game-icon" style="color:#005514">?</span>' +
+        '<div class="game-name" style="color:#005514">FOR YOU</div>' +
+        '<div class="game-score" style="color:#005514">COMING SOON</div>' +
+        '</div>';
+    }
     const onclick = "window.location.href='" + g.extUrl + "'";
-    const scoreText = g.id==='cave' ? ('ACH: '+getCaveAchievements()) : ('ACH: '+getCave2Achievements());
+    const scoreText = g.id==='cave' ? ('ACH: '+getCaveAchievements()) : g.id==='cave2' ? ('ACH: '+getCave2Achievements()) : ('ACH: '+getCave3Achievements());
+    const ownerBadge = (g.ownerOnly && IS_OWNER) ? ' <span style="font-size:7px;color:#ffd700">[OWNER PREVIEW]</span>' : '';
     return '<div class="game-card trilogy-card" onclick="' + onclick + '">' +
       '<span class="game-icon" style="color:' + g.color + '">' + g.icon + '</span>' +
-      '<div class="game-name" style="color:' + g.color + '">' + g.name + '</div>' +
+      '<div class="game-name" style="color:' + g.color + '">' + g.name + ownerBadge + '</div>' +
       '<div class="game-score">' + scoreText + '</div>' +
       '</div>';
   }).join('');

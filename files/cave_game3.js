@@ -276,28 +276,69 @@ function piper_talk(){
   currentNarrator='piper';
   piper("i went somewhere once.");
   blank();
-  N("She says it simply.");
+  N("She says it simply. Like she's been waiting to tell someone.");
   blank();
   hazel("...what happened?");
   blank();
   piper("it worked. the thing i went for. it actually worked.");
+  piper("spent years thinking it might. spent more years not going.");
+  piper("then one day i just. went.");
   blank();
+  if(isabelleWithHazel){isabelle("...what made you finally go?");}
+  else{hazel("what made you finally go?");}
+  blank();
+  piper("i got tired of the weight of it.");
+  piper("carrying something you haven't done yet is heavier than doing it.");
+  piper("i didn't understand that until after.");
+  blank();
+  cont(piper_talk_2);
+}
+
+function piper_talk_2(){
+  currentNarrator='piper';
   if(isabelleWithHazel){isabelle("...and you came back?");}
   else{hazel("...and you came back.");}
   blank();
   piper("...");
   piper("this is home.");
   piper("going somewhere doesn't mean leaving forever.");
-  piper("that's the thing they don't tell you.");
+  piper("that's what i didn't know. before.");
   blank();
-  piper("don't doubt yourself.");
-  piper("and do it before it's too late.");
-  piper("whatever it is you're working up to.");
+  N("She looks at the road. Not at Hazel. But the words are for her.");
   blank();
-  N("She doesn't look at Hazel when she says it. But she means it for her.");
-  blank();
-  unlockAchievement("Piper","rare");
-  cont(eli_scene);
+  addLine("Options: 1 / 2",'prompt',220);
+  addLine("  1. do you ever miss it? the place you went?",'prompt',80);
+  addLine("  2. ...thank you.",'prompt',80);
+  askChoice(["1","2"],(c)=>{
+    if(c==="1"){
+      hazel("do you ever miss it? the place you went?");
+      blank();
+      piper("...");
+      piper("all the time.");
+      piper("but i carry it with me now.");
+      piper("that's different from missing it.");
+      blank();
+      unlockAchievement("Carry It With You","rare");
+    } else {
+      hazel("...thank you.");
+      blank();
+      piper("...");
+      piper("i haven't told anyone that in a long time.");
+      piper("good luck. both of you.");
+    }
+    blank();
+    piper("don't doubt yourself.");
+    blank();
+    piper("and do it before it's too late.");
+    blank();
+    piper("whatever it is you're working up to.");
+    blank();
+    N("The bus comes. She doesn't move to get on it.");
+    N("She was never waiting for the bus.");
+    blank();
+    unlockAchievement("Piper","rare");
+    cont(eli_scene);
+  });
 }
 
 // ═══ ELI ════════════════════════════════════════════════════
@@ -329,9 +370,14 @@ function eli_scene(){
 
 function eli_inside(){
   currentNarrator='eli';
-  N("Inside. Warm. Eli makes tea without asking.");
-  if(isabelleWithHazel){N("Isabelle immediately looks at the menu board even though it's closed.");}
-  N("Hazel notices his jaw tighten slightly when people pass outside.");
+  N("Inside. Warm. The cafe still smells of the day.");
+  if(isabelleWithHazel){N("Isabelle immediately looks at the menu board even though it's closed. Some habits.");}
+  blank();
+  N("Eli makes tea without asking. Puts it down. Goes back to wiping the counter.");
+  blank();
+  N("Hazel notices the way his jaw tightens slightly when people pass outside.");
+  N("The way he watches the window a beat too long.");
+  N("She knows that look from the inside.");
   blank();
   addLine("Options: 1 / 2",'prompt',220);
   addLine("  1. you've been here a while.",'prompt',80);
@@ -340,25 +386,38 @@ function eli_inside(){
     if(c==="1"){
       hazel("you've been here a while.");
       blank();
-      eli("...");
-      eli("whole life. love it here.");
-      eli("...");
-      eli("they just.");
-      eli("stopped looking at me right.");
+      eli("whole life.");
       blank();
-      N("Not for sympathy. Just because it's true.");
+      hazel("do you like it here?");
+      blank();
+      eli("...");
+      eli("yeah. i do.");
+      eli("that's the complicated part.");
+      eli("it would be easier if i didn't.");
+      blank();
+      N("He keeps wiping the counter. Not looking at her.");
+      blank();
+      eli("they love me here. most of them.");
+      eli("they've known me since i was small.");
+      eli("but they know me as one thing.");
+      eli("and the one thing isn't the whole thing.");
+      blank();
+      N("Hazel is very still.");
       blank();
       hazel("...");
       hazel("yeah.");
       blank();
-      N("She doesn't explain what she means. He doesn't ask.");
+      N("She doesn't explain what she means.");
+      N("He doesn't ask.");
       N("Some conversations don't need the whole sentence.");
       blank();
       unlockAchievement("Eli","rare");
     } else {
       hazel("...");
       eli("...");
-      N("Comfortable quiet. Sometimes that's enough.");
+      blank();
+      N("They sit in the quiet. Eli keeps working. It's comfortable.");
+      N("Some silences are full of things that don't need to be said.");
     }
     cont(eli_morning);
   });
@@ -544,10 +603,10 @@ function cave_approach(){
     addLine("  1. i have to go in alone.",'prompt',80);
     addLine("  2. wait here. i won't be long.",'prompt',80);
     askChoice(["1","2"],(c)=>{
-      if(c==="1"){hazel("i have to go in alone.");isabelle("okay.");isabelle("come back.");hazel("...yeah.");}
-      else{hazel("wait here. i won't be long.");isabelle("okay. i'll be here.");N("She sits on a rock. Like waiting for Hazel is just a thing she does.");}
+      if(c==="1"){hazel("i have to go in alone.");blank();isabelle("okay.");isabelle("come back.");hazel("...yeah.");}
+      else{hazel("wait here. i won't be long.");blank();isabelle("okay. i'll be here.");N("She sits on a rock. Like waiting for Hazel is just a thing she does.");}
       blank();
-      cont(cave_owl);
+      cont(cave_entry);
     });
   } else {
     N("She's alone. The way the letter said.");
@@ -557,37 +616,230 @@ function cave_approach(){
     addLine("  2. stand here for a moment.",'prompt',80);
     askChoice(["1","2"],(c)=>{
       if(c==="1"){hazel("go in.");N("She goes in.");}
-      else{hazel("stand here for a moment.");N("The cave waits. It's been waiting a long time. It can wait a moment more.");unlockAchievement("Took a Breath","common");}
+      else{hazel("stand here for a moment.");blank();N("The cave waits. It has been waiting a long time. It can wait a moment more.");unlockAchievement("Took a Breath","common");}
       blank();
-      cont(cave_owl);
+      cont(cave_entry);
     });
   }
 }
 
-function cave_owl(){
+function cave_entry(){
+  currentNarrator='narrator';
+  blank();
+  N("...");
+  blank();
+  N("Ready for Round 2?");
+  blank();
+  addLine("Options: 1 / 2",'prompt',220);
+  addLine("  1. yeah.",'prompt',80);
+  addLine("  2. ...was that you?",'prompt',80);
+  askChoice(["1","2"],(c)=>{
+    if(c==="1"){
+      hazel("yeah.");
+      blank();
+      N("Good.");
+    } else {
+      hazel("...was that you?");
+      blank();
+      N("...");
+      N("I've been waiting to say that for two games.");
+      blank();
+      unlockAchievement("Round 2","secret");
+    }
+    cont(cave_crossroads);
+  });
+}
+
+function cave_crossroads(){
   currentNarrator='narrator';
   artPrint(`
-       ,_,
-      (o,o)
-      {""""}
-       " " `);
+         ,_,
+        (o,o)         [ owl ]
+        {"""}          sits.
+         " "           waits.
+
+   ← left passage    right passage →
+           ↓
+       deeper path`);
   divider();
   N("Inside. Darker. Older. The walls feel closer even when they aren't.");
   blank();
-  N("Then she sees the owl.");
-  N("Sitting on a ledge. Very still. Looking at her.");
-  N("Not a wild animal look. Recognition.");
+  N("An owl on a ledge. Watching her. Recognition, not wildness.");
+  blank();
+  N("Three passages. All leading somewhere.");
   blank();
   addLine("Options: 1 / 2 / 3",'prompt',220);
-  addLine("  1. ...hello.",'prompt',80);
-  addLine("  2. are you supposed to guide me?",'prompt',80);
-  addLine("  3. ...",'prompt',80);
+  addLine("  1. left passage.",'prompt',80);
+  addLine("  2. right passage.",'prompt',80);
+  addLine("  3. deeper path.",'prompt',80);
   askChoice(["1","2","3"],(c)=>{
-    if(c==="1"){hazel("...hello.");N("The owl blinks. Once. Then moves deeper into the cave.");unlockAchievement("Said Hello to the Owl","common");}
-    else if(c==="2"){hazel("are you supposed to guide me?");N("The owl looks at her. Then moves deeper. She takes that as a yes.");unlockAchievement("Good Question Again","rare");}
-    else{hazel("...");N("The owl blinks. Turns. Moves deeper. She follows.");}
+    if(c==="1") clearAndRun(cave_left);
+    else if(c==="2") clearAndRun(cave_right);
+    else clearAndRun(cave_deeper);
+  });
+}
+
+// ── LEFT PASSAGE ─────────────────────────────────────────────
+function cave_left(){
+  currentNarrator='narrator';
+  artPrint(`
+   [ left passage ]
+   narrow. old carvings on the walls.`);
+  divider();
+  N("The walls here have markings on them.");
+  N("Not language. Something older than language.");
+  N("Lines and circles that almost mean something.");
+  blank();
+  N("At the end: a small alcove.");
+  N("A stone shelf. A candle on it. Still lit.");
+  blank();
+  addLine("Options: 1 / 2 / 3",'prompt',220);
+  addLine("  1. look at the markings.",'prompt',80);
+  addLine("  2. look at the candle.",'prompt',80);
+  addLine("  3. sit in the alcove.",'prompt',80);
+  askChoice(["1","2","3"],(c)=>{
+    if(c==="1"){
+      hazel("look at the markings.");
+      blank();
+      N("She traces one with her finger. Worn smooth.");
+      N("Someone has done this before her. A lot of someones.");
+      blank();
+      N("She thinks about all the people who stood here.");
+      N("All with something they were walking toward.");
+      blank();
+      unlockAchievement("Those Who Came Before","rare");
+    } else if(c==="2"){
+      hazel("look at the candle.");
+      blank();
+      N("It's been burning for a long time. There's almost nothing left.");
+      N("But it's still going.");
+      blank();
+      N("She stays with that.");
+      blank();
+      unlockAchievement("Still Going","rare");
+    } else {
+      hazel("sit in the alcove.");
+      blank();
+      N("She fits. Just barely. The stone is warm from the candle.");
+      N("She sits there quietly.");
+      N("The cave doesn't mind.");
+      blank();
+      N("...");
+      blank();
+      N("She needed that.");
+      blank();
+      unlockAchievement("Needed That","common");
+    }
     blank();
-    cont(cave_water);
+    N("The passage loops back.");
+    cont(cave_crossroads_return);
+  });
+}
+
+// ── RIGHT PASSAGE ─────────────────────────────────────────────
+function cave_right(){
+  currentNarrator='narrator';
+  artPrint(`
+   [ right passage ]
+   wider. sound of water somewhere below.`);
+  divider();
+  N("This passage widens as she goes.");
+  N("Sound of water. Distant but getting closer.");
+  blank();
+  N("A room. Natural. High ceiling.");
+  N("A smaller pool. Not the pool — a different one. Ancient.");
+  blank();
+  N("At the bottom: a single stone. Flat. Smooth. Round.");
+  N("It looks exactly like the coin.");
+  blank();
+  addLine("Options: 1 / 2",'prompt',220);
+  addLine("  1. reach in and take it.",'prompt',80);
+  addLine("  2. leave it.",'prompt',80);
+  askChoice(["1","2"],(c)=>{
+    if(c==="1"){
+      hazel("reach in and take it.");
+      blank();
+      N("The water is cold. The stone is smooth. Both sides identical.");
+      blank();
+      if(S.coin){
+        N("She holds it next to the coin from the road.");
+        N("They're the same.");
+        N("She doesn't know what that means.");
+        N("She keeps both.");
+        unlockAchievement("Two Coins","secret");
+      } else {
+        N("She turns it over. Both sides the same. No markings.");
+        N("She pockets it.");
+        N("Better late than never.");
+        unlockAchievement("Found One Anyway","secret");
+      }
+    } else {
+      hazel("leave it.");
+      blank();
+      N("She looks at it for a long moment.");
+      N("Some things are better left where they are.");
+      if(!S.coin){blank();N("She already knows that.");}
+    }
+    blank();
+    N("The passage loops back.");
+    cont(cave_crossroads_return);
+  });
+}
+
+// ── DEEPER PATH ───────────────────────────────────────────────
+function cave_deeper(){
+  currentNarrator='narrator';
+  artPrint(`
+   [ deeper path ]
+   the owl went this way.`);
+  divider();
+  N("The owl hops off its ledge.");
+  N("Moves to the entrance of this passage. Looks back at her.");
+  blank();
+  addLine("Options: 1 / 2",'prompt',220);
+  addLine("  1. follow it.",'prompt',80);
+  addLine("  2. not yet.",'prompt',80);
+  askChoice(["1","2"],(c)=>{
+    if(c==="1"){
+      hazel("follow it.");
+      blank();
+      N("She follows. The passage goes down. Further down.");
+      N("The owl moves without sound.");
+      blank();
+      N("Then the passage opens.");
+      blank();
+      cont(cave_water);
+    } else {
+      hazel("not yet.");
+      blank();
+      N("The owl waits.");
+      N("It is very patient.");
+      blank();
+      unlockAchievement("Made It Wait","common");
+      cont(cave_crossroads_return);
+    }
+  });
+}
+
+function cave_crossroads_return(){
+  currentNarrator='narrator';
+  artPrint(`
+         ,_,
+        (o,o)         [ owl ]
+        {"""}          still here.
+         " "           still watching.`);
+  divider();
+  N("She comes back to the crossroads.");
+  N("The owl is still there.");
+  blank();
+  addLine("Options: 1 / 2 / 3",'prompt',220);
+  addLine("  1. left passage.",'prompt',80);
+  addLine("  2. right passage.",'prompt',80);
+  addLine("  3. follow the owl.",'prompt',80);
+  askChoice(["1","2","3"],(c)=>{
+    if(c==="1") clearAndRun(cave_left);
+    else if(c==="2") clearAndRun(cave_right);
+    else clearAndRun(cave_deeper);
   });
 }
 
@@ -600,26 +852,66 @@ function cave_water(){
    ≈                             ≈
    ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈`);
   divider();
-  N("The deep chamber. The owl is gone.");
+  N("The deep chamber.");
+  N("The owl is gone.");
   blank();
-  N("In the centre: a pool of water. Perfectly still. Ancient.");
+  N("In the centre: a pool of water.");
+  N("Perfectly still. Ancient. The kind of still that has been still for hundreds of years.");
+  blank();
+  N("She walks toward it slowly.");
   blank();
   N("She looks into it.");
   blank();
+  N("...");
+  blank();
   N("She sees herself.");
   blank();
-  N("Clearly. Without the doubt.");
-  N("Not the version the village sees. Not the version she shows people when she's being careful.");
-  N("Just herself. Plainly.");
+  cont(cave_water_2);
+}
+
+function cave_water_2(){
+  currentNarrator='narrator';
+  N("Not the version the village sees.");
+  N("Not the version she shows people when she's being careful.");
+  N("Not the version she sees in bad mirrors and bad moments.");
+  blank();
+  N("Just herself. Plainly. The way she actually is.");
+  blank();
+  N("She's been waiting for that for a long time.");
+  blank();
+  N("She doesn't know how long she stands there.");
   blank();
   addLine("Options: 1 / 2 / 3",'prompt',220);
   addLine("  1. ...oh.",'prompt',80);
   addLine("  2. i look like that?",'prompt',80);
   addLine("  3. ...",'prompt',80);
   askChoice(["1","2","3"],(c)=>{
-    if(c==="1"){hazel("...oh.");N("...");N("Yeah.");}
-    else if(c==="2"){hazel("i look like that?");N("Yes. You do. You always have.");unlockAchievement("Saw Herself","epic");}
-    else{hazel("...");N("She stands there for a long time.");}
+    if(c==="1"){
+      hazel("...oh.");
+      blank();
+      N("...");
+      blank();
+      N("Yeah. Oh.");
+      blank();
+      N("She sits down next to the pool. The cave is very quiet.");
+      N("She lets herself just. Be there. For a minute.");
+    }
+    else if(c==="2"){
+      hazel("i look like that?");
+      blank();
+      N("Yes. You do.");
+      N("You always have.");
+      N("You just couldn't see it from the angle you were standing.");
+      blank();
+      unlockAchievement("Saw Herself","epic");
+    }
+    else{
+      hazel("...");
+      blank();
+      N("She stands there for a long time.");
+      N("Not thinking. Just looking.");
+      N("That's enough.");
+    }
     blank();
     cont(cave_voice);
   });
@@ -629,15 +921,37 @@ function cave_voice(){
   currentNarrator='narrator';
   N("Then the voice.");
   blank();
-  N("Not loud. Not dramatic. Calm. Certain. Like someone who doesn't waste words.");
+  N("Not loud. Not dramatic.");
+  N("Calm. Certain. The kind of calm that comes from having been right about something for a very long time.");
   blank();
-  addLine("You already knew.","art-gold",300);
+  addLine("You already knew.","art-gold",400);
   blank();
-  N("Three words. But they settle into her chest like something true for a long time.");
+  N("...");
   blank();
-  N("She knew about Isabelle. She knew she deserved good things.");
+  N("She stands there with those three words.");
+  blank();
+  cont(cave_voice_2);
+}
+
+function cave_voice_2(){
+  currentNarrator='narrator';
+  N("She knew about Isabelle.");
+  blank();
+  N("She knew she deserved good things.");
+  blank();
   N("She knew the cave was waiting for her.");
-  N("She just needed to walk far enough to believe it.");
+  blank();
+  N("She knew her name.");
+  blank();
+  N("She just needed to walk far enough");
+  N("to trust herself");
+  N("to believe it.");
+  blank();
+  N("The cave goes quiet again. The pool is still.");
+  N("The owl is still gone.");
+  blank();
+  N("She sits there for a while longer.");
+  N("Not because she has to. Because she wants to.");
   blank();
   unlockAchievement("The Voice","legendary");
   cont(cave_exit_scene);
@@ -700,29 +1014,111 @@ function cave_exit_scene(){
 // ═══ HERMES ═════════════════════════════════════════════════
 function hermes_reveal(){
   currentNarrator='hermes';
+  blank();
   hermes("I'm Hermes.");
   blank();
-  hermes("I've been with you since the first cave.");
-  hermes("Athena sent me.");
-  hermes("The letter was hers. The voicemail was mine.");
-  hermes("The stranger on the road was me.");
+  N("...");
   blank();
+  N("She already knows. She's known since the cave. Maybe before.");
+  N("But hearing it said out loud is different.");
+  blank();
+  hermes("Athena sent me.");
+  hermes("She noticed you when you named the computer.");
+  hermes("Fifteen years old. You called it Athena. Carefully. Like it mattered.");
+  hermes("It did.");
+  blank();
+  hermes("She's been watching since then.");
+  hermes("I've been with you since the first cave.");
+  blank();
+  addLine("Options: 1 / 2 / 3",'prompt',220);
+  addLine("  1. the letter was hers.",'prompt',80);
+  addLine("  2. the voicemail. the stranger.",'prompt',80);
+  addLine("  3. ...how long have you been waiting.",'prompt',80);
+  askChoice(["1","2","3"],(c)=>{
+    if(c==="1"){
+      hazel("the letter was hers.");
+      blank();
+      hermes("Yes. I delivered it. As is my role.");
+      hermes("She wrote it for you specifically.");
+      hermes("Not for someone like you.");
+      blank();
+      addLine("For you.","art-gold",300);
+      blank();
+    } else if(c==="2"){
+      hazel("the voicemail. the stranger on the road.");
+      blank();
+      hermes("Both me.");
+      hermes("I have many shapes. That's also my role.");
+      hermes("The stranger — I wanted to see how you'd react to the words.");
+      hermes("You called after them. I was glad.");
+      unlockAchievement("Told Her About the Letter","epic");
+      blank();
+    } else {
+      hazel("...how long have you been waiting.");
+      blank();
+      hermes("In that cave?");
+      hermes("Long enough that time stopped meaning much.");
+      blank();
+      hazel("...that sounds lonely.");
+      blank();
+      hermes("...");
+      hermes("It wasn't, actually. The cave is good company.");
+      hermes("But yes. It was a long wait.");
+      hermes("You were worth it.");
+      blank();
+    }
+    cont(hermes_coin);
+  });
+}
+
+function hermes_coin(){
+  currentNarrator='hermes';
   if(S.coin){
-    hermes("The coin was mine. I wanted you to have something to hold.");
+    hermes("The coin was mine.");
+    hermes("I wanted you to have something to hold.");
+    hermes("Something that reminded you this was real.");
     blank();
     addLine("Options: 1 / 2 / 3",'prompt',220);
     addLine("  1. ...i still have it.",'prompt',80);
     addLine("  2. which side is which?",'prompt',80);
     addLine("  3. why no markings?",'prompt',80);
     askChoice(["1","2","3"],(c)=>{
-      if(c==="1"){hazel("...i still have it.");hermes("...");hermes("I know. I'm glad.");}
-      else if(c==="2"){hazel("which side is which?");hermes("There isn't one.");hermes("It was about having something in your pocket that reminded you this was real.");unlockAchievement("The Coin Explained","secret");}
-      else{hazel("why no markings?");hermes("Because I didn't want you to be able to flip it.");hermes("This wasn't a coin toss kind of journey.");unlockAchievement("The Coin Explained","secret");}
+      if(c==="1"){
+        hazel("...i still have it.");
+        blank();
+        hermes("...");
+        hermes("I know.");
+        hermes("I'm glad.");
+        blank();
+        N("She takes it out. Both sides still identical.");
+        N("She looks at it for a moment. Then puts it back.");
+        N("She keeps it.");
+        unlockAchievement("The Coin Explained","secret");
+      } else if(c==="2"){
+        hazel("which side is which?");
+        blank();
+        hermes("There isn't one.");
+        hermes("That was the point.");
+        hermes("This wasn't a coin toss kind of journey.");
+        hermes("There was never a wrong side.");
+        blank();
+        unlockAchievement("The Coin Explained","secret");
+      } else {
+        hazel("why no markings?");
+        blank();
+        hermes("Because I didn't want you trying to figure out what it meant.");
+        hermes("I wanted you to just carry it.");
+        hermes("Some things just need to be held.");
+        blank();
+        unlockAchievement("The Coin Explained","secret");
+      }
       blank();
       cont(hermes_q_menu_start);
     });
   } else {
-    hermes("I left you a coin. I wanted you to have something to hold.");
+    hermes("I left you a coin. At the cave entrance.");
+    hermes("I wanted you to have something to hold.");
+    blank();
     hermes("You left it.");
     blank();
     addLine("Options: 1 / 2 / 3",'prompt',220);
@@ -730,9 +1126,28 @@ function hermes_reveal(){
     addLine("  2. ...sorry.",'prompt',80);
     addLine("  3. i didn't need it.",'prompt',80);
     askChoice(["1","2","3"],(c)=>{
-      if(c==="3"){hazel("i didn't need it.");hermes("...");hermes("No. You got here anyway. That's more impressive.");unlockAchievement("Didn't Need It","epic");}
-      else if(c==="2"){hazel("...sorry.");hermes("That's alright. You got here anyway.");}
-      else{hazel("i didn't know what it was.");hermes("That's alright. You got here anyway.");}
+      if(c==="3"){
+        hazel("i didn't need it.");
+        blank();
+        hermes("...");
+        hermes("No.");
+        hermes("You got here anyway.");
+        hermes("That's the more impressive version, honestly.");
+        blank();
+        unlockAchievement("Didn't Need It","epic");
+      } else if(c==="2"){
+        hazel("...sorry.");
+        blank();
+        hermes("That's alright.");
+        hermes("You got here anyway.");
+        hermes("That was always the point.");
+      } else {
+        hazel("i didn't know what it was.");
+        blank();
+        hermes("That's alright.");
+        hermes("Most people don't, at first.");
+        hermes("You got here anyway. Same result.");
+      }
       blank();
       cont(hermes_q_menu_start);
     });
@@ -867,24 +1282,65 @@ function hermes_final(){
 // ═══ ENDING A — TOGETHER ════════════════════════════════════
 function isabelle_moment(){
   currentNarrator='narrator';
-  N("Just Hazel and Isabelle. Hermes steps back.");
+  N("Hermes steps back.");
   blank();
-  N("Outside the cave. Morning light.");
-  N("Isabelle knows something shifted. She doesn't ask. She just stands next to her.");
+  N("This part isn't his.");
   blank();
+  N("Just Hazel and Isabelle.");
+  N("Outside the cave. Morning light on the stones.");
+  blank();
+  N("Isabelle stood up when she saw Hazel come out.");
+  N("Looked at her face. Didn't say anything.");
+  N("She could tell something had shifted.");
+  blank();
+  N("Eight years of knowing Hazel.");
   N("Eight years of knowing when to wait.");
   blank();
-  N("Hermes — completely silent. First time by choice.");
+  N("She waits.");
+  blank();
+  N("Hermes is completely silent.");
+  N("First time in three games by choice.");
+  blank();
+  cont(isabelle_moment_2);
+}
+
+function isabelle_moment_2(){
+  currentNarrator='narrator';
+  N("Hazel stands there.");
+  blank();
+  N("Piper said: don't doubt yourself.");
+  N("Eli said: they stopped looking.");
+  N("May said: carrying it wasn't real. saying it was.");
+  blank();
+  N("All three of them were talking about this moment.");
+  N("She knows that now.");
   blank();
   addLine("Options: 1 / 2 / 3",'prompt',220);
   addLine("  1. say it now.",'prompt',80);
   addLine("  2. wait a moment.",'prompt',80);
   addLine("  3. ...",'prompt',80);
   askChoice(["1","2","3"],(c)=>{
-    if(c==="1"){N("She doesn't let herself think. She just turns to Isabelle and goes.");}
-    else if(c==="2"){N("She stands there. Thinks about May. Carrying it wasn't real. Saying it was.");blank();}
-    else{N("Isabelle reaches over and takes her hand. Doesn't say anything. Just takes it.");N("Something in Hazel gives way.");blank();unlockAchievement("She Reached First","epic");}
-    blank();
+    if(c==="1"){
+      N("She doesn't let herself think.");
+      N("She turns to Isabelle and goes.");
+      blank();
+    } else if(c==="2"){
+      N("She looks at the cave behind her.");
+      N("Then back at Isabelle.");
+      N("May's voice: carrying it wasn't real. saying it was.");
+      blank();
+      N("She goes.");
+      blank();
+    } else {
+      N("Isabelle reaches over.");
+      N("Takes her hand.");
+      N("Doesn't say anything. Just — takes it.");
+      blank();
+      N("Hazel looks down at their hands.");
+      N("Something in her gives way.");
+      blank();
+      unlockAchievement("She Reached First","epic");
+    }
     cont(the_words_together);
   });
 }
